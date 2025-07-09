@@ -776,7 +776,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[750px] overflow-hidden">
           {/* Left Column - Controls */}
-          <div className="lg:col-span-1 h-full overflow-scroll">
+          <div className="lg:col-span-1 h-full">
             <div className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-3xl p-8 shadow-lg text-white h-full">
               {/* Case Details */}
               <div className="bg-white/20 rounded-2xl p-6 mb-6">
@@ -791,7 +791,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
               </div>
 
               {/* Annotation Controls */}
-              <div className="space-y-6">
+              <div className="space-y-6 overflow-y-auto max-h-[500px]">
                 {renderControlButtons()}
 
                 {/* Help Text */}
