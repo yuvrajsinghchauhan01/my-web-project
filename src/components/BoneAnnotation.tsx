@@ -284,21 +284,23 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
   const renderPolygon = (polygon: PolygonData, adjustment: AdjustmentState) => {
     if (polygon.points.length === 0) return null;
 
-    const pathData = polygon.points
-      .map((point, index) => {
-        const adjustedX = point.x + (adjustment.x * 0.1);
-        const adjustedY = point.y + (adjustment.y * 0.1);
-        return `${index === 0 ? 'M' : 'L'} ${adjustedX} ${adjustedY}`;
-      })
-      .join(' ') + (polygon.isComplete ? ' Z' : '');
-
     const centerX = polygon.points.reduce((sum, point) => sum + point.x, 0) / polygon.points.length;
     const centerY = polygon.points.reduce((sum, point) => sum + point.y, 0) / polygon.points.length;
+
+    const adjustedPoints = polygon.points.map(point => ({
+      x: point.x + (adjustment.x * 0.1),
+      y: point.y + (adjustment.y * 0.1)
+    }));
+
+    const pathData = adjustedPoints
+      .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+      .join(' ') + (polygon.isComplete ? ' Z' : '');
 
     return (
       <svg className="absolute inset-0 w-full h-full pointer-events-none">
         <g transform={`rotate(${adjustment.rotation} ${centerX + (adjustment.x * 0.1)} ${centerY + (adjustment.y * 0.1)})`}>
           <g transform={`scale(${adjustment.scale})`}>
+            {/* Polygon fill and stroke */}
             <path
               d={pathData}
               fill="rgba(255, 255, 0, 0.3)"
@@ -306,12 +308,32 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
               strokeWidth="2"
               vectorEffect="non-scaling-stroke"
             />
+            
+            {/* Individual line segments for incomplete polygon */}
+            {!polygon.isComplete && adjustedPoints.length > 1 && adjustedPoints.map((point, index) => {
+              if (index === 0) return null;
+              const prevPoint = adjustedPoints[index - 1];
+              return (
+                <line
+                  key={`line-${index}`}
+                  x1={`${prevPoint.x}%`}
+                  y1={`${prevPoint.y}%`}
+                  x2={`${point.x}%`}
+                  y2={`${point.y}%`}
+                  stroke="#ffff00"
+                  strokeWidth="2"
+                  vectorEffect="non-scaling-stroke"
+                />
+              );
+            })}
           </g>
-          {polygon.points.map((point, index) => (
+          
+          {/* Point markers */}
+          {adjustedPoints.map((point, index) => (
             <circle
               key={index}
-              cx={`${point.x + (adjustment.x * 0.1)}%`}
-              cy={`${point.y + (adjustment.y * 0.1)}%`}
+              cx={`${point.x}%`}
+              cy={`${point.y}%`}
               r="4"
               fill="#ffff00"
               stroke="#000"
@@ -592,7 +614,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
         
         {drawingMode === 'ap' && (
           <div className="space-y-3">
-            <div className="flex space-x-2">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={handleSaveAP}
                 disabled={apPolygon.points.length < 3}
@@ -612,7 +634,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
 
         {drawingMode === 'ml' && (
           <div className="space-y-3">
-            <div className="flex space-x-2">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={handleSaveML}
                 disabled={mlPolygon.points.length < 3}

@@ -34,6 +34,7 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
     latXray: patientData.latXrayImage
   });
   const [isDraggingArrow, setIsDraggingArrow] = useState<'ap' | 'lat' | null>(null);
+  const [markersFixed, setMarkersFixed] = useState(false);
 
   const apImageRef = useRef<HTMLDivElement>(null);
   const latImageRef = useRef<HTMLDivElement>(null);
@@ -43,6 +44,7 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
     setApMarker({ x: 45, y: 60, diameter: 25, rotation: 37, arrowRotation: -15 });
     setLatMarker({ x: 55, y: 65, diameter: 25, rotation: -4, arrowRotation: 90 });
     setCurrentStep('detected');
+    setMarkersFixed(true);
     
     // Show rotation tooltips
     setShowRotationTooltip({ ap: true, lat: true });
@@ -52,7 +54,7 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
   };
 
   const handleImageClick = useCallback((event: React.MouseEvent, imageType: 'ap' | 'lat') => {
-    if (isDraggingArrow) return;
+    if (isDraggingArrow || markersFixed) return;
     
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * 100;
@@ -95,8 +97,8 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
   const handleSave = () => {
     setCurrentStep('straightened');
     // Calculate rotation needed to straighten based on arrow direction
-    const apStraightenRotation = -apMarker.arrowRotation;
-    const latStraightenRotation = -latMarker.arrowRotation;
+    const apStraightenRotation = 90 - apMarker.arrowRotation; // Straighten to vertical
+    const latStraightenRotation = 90 - latMarker.arrowRotation; // Straighten to vertical
     
     setApRotation(apStraightenRotation);
     setLatRotation(latStraightenRotation);
@@ -146,14 +148,15 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
       </div>
       
       {/* Arrow Direction Indicator */}
-      <div 
+      {currentStep !== 'initial' && (
+        <div 
         className="absolute pointer-events-auto cursor-grab active:cursor-grabbing"
         style={{ 
           transform: `rotate(${marker.arrowRotation}deg)`,
           transformOrigin: 'center'
         }}
         onMouseDown={() => handleMouseDown(imageType)}
-      >
+        >
         {/* Arrow shaft */}
         <div className="absolute w-12 h-1 bg-yellow-400 -translate-y-1/2"></div>
         {/* Arrow head */}
@@ -167,7 +170,8 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
             borderBottom: '4px solid transparent'
           }}
         ></div>
-      </div>
+        </div>
+      )}
       
       {/* Rotation tooltip */}
       {showRotationTooltip[imageType] && (
@@ -319,7 +323,7 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
               <div
                 ref={apImageRef}
                 className="aspect-[3/4] bg-black relative cursor-crosshair flex items-center justify-center h-[700px]"
-                onClick={(e) => handleImageClick(e, 'ap')}
+                onClick={(e) => !markersFixed && handleImageClick(e, 'ap')}
                 onMouseMove={(e) => handleArrowDrag(e, 'ap')}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
@@ -345,7 +349,7 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
               <div
                 ref={latImageRef}
                 className="aspect-[3/4] bg-black relative cursor-crosshair flex items-center justify-center"
-                onClick={(e) => handleImageClick(e, 'lat')}
+                onClick={(e) => !markersFixed && handleImageClick(e, 'lat')}
                 onMouseMove={(e) => handleArrowDrag(e, 'lat')}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
