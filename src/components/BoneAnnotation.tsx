@@ -128,6 +128,19 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
     }
   }, [drawingMode]);
 
+  const handleMouseMove = useCallback((event: React.MouseEvent, imageType: 'ap' | 'ml') => {
+    if (drawingMode === 'none') return;
+    if ((drawingMode === 'ap' && imageType !== 'ap') || (drawingMode === 'ml' && imageType !== 'ml')) return;
+    
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+    
+    // Update CSS custom properties for rubber band line
+    const target = event.currentTarget as HTMLElement;
+    target.style.setProperty('--mouse-x', `${x}%`);
+    target.style.setProperty('--mouse-y', `${y}%`);
+  }, [drawingMode]);
   const handleSaveAP = () => {
     if (apPolygon.points.length >= 3) {
       setApPolygon(prev => ({ ...prev, isComplete: true }));
@@ -292,25 +305,13 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
       y: point.y + (adjustment.y * 0.1)
     }));
 
-    const pathData = adjustedPoints
-      .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
-      .join(' ') + (polygon.isComplete ? ' Z' : '');
 
     return (
       <svg className="absolute inset-0 w-full h-full pointer-events-none">
         <g transform={`rotate(${adjustment.rotation} ${centerX + (adjustment.x * 0.1)} ${centerY + (adjustment.y * 0.1)})`}>
           <g transform={`scale(${adjustment.scale})`}>
-            {/* Polygon fill and stroke */}
-            <path
-              d={pathData}
-              fill="rgba(255, 255, 0, 0.3)"
-              stroke="#ffff00"
-              strokeWidth="2"
-              vectorEffect="non-scaling-stroke"
-            />
-            
-            {/* Individual line segments for incomplete polygon */}
-            {!polygon.isComplete && adjustedPoints.length > 1 && adjustedPoints.map((point, index) => {
+            {/* Individual line segments connecting all points */}
+            {adjustedPoints.length > 1 && adjustedPoints.map((point, index) => {
               if (index === 0) return null;
               const prevPoint = adjustedPoints[index - 1];
               return (
@@ -326,6 +327,28 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                 />
               );
             })}
+            
+            {/* Closing line for completed polygon */}
+            {polygon.isComplete && adjustedPoints.length > 2 && (
+              <line
+                x1={`${adjustedPoints[adjustedPoints.length - 1].x}%`}
+                y1={`${adjustedPoints[adjustedPoints.length - 1].y}%`}
+                x2={`${adjustedPoints[0].x}%`}
+                y2={`${adjustedPoints[0].y}%`}
+                stroke="#ffff00"
+                strokeWidth="2"
+                vectorEffect="non-scaling-stroke"
+              />
+            )}
+            
+            {/* Fill for completed polygon */}
+            {polygon.isComplete && adjustedPoints.length > 2 && (
+              <polygon
+                points={adjustedPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                fill="rgba(255, 255, 0, 0.3)"
+                stroke="none"
+              />
+            )}
           </g>
           
           {/* Point markers */}
@@ -345,6 +368,27 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
     );
   };
 
+  const renderRubberBandLine = (polygon: PolygonData, imageType: 'ap' | 'ml') => {
+    if (polygon.points.length === 0 || polygon.isComplete) return null;
+    if ((drawingMode === 'ap' && imageType !== 'ap') || (drawingMode === 'ml' && imageType !== 'ml')) return null;
+
+    const lastPoint = polygon.points[polygon.points.length - 1];
+    
+    return (
+      <svg className="absolute inset-0 w-full h-full pointer-events-none">
+        <line
+          x1={`${lastPoint.x}%`}
+          y1={`${lastPoint.y}%`}
+          x2="var(--mouse-x, 50%)"
+          y2="var(--mouse-y, 50%)"
+          stroke="#ffff00"
+          strokeWidth="2"
+          strokeDasharray="5,5"
+          opacity="0.7"
+        />
+      </svg>
+    );
+  };
   const renderCropOverlay = (imageType: 'ap' | 'ml') => {
     if (cropMode !== imageType) return null;
 
@@ -878,6 +922,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                     handleImageClick(e, 'ap');
                   }
                 }}
+                onMouseMove={(e) => handleMouseMove(e, 'ap')}
                 style={{
                   backgroundImage: patientData.apXrayImage 
                     ? `url("${patientData.apXrayImage}")`
@@ -891,6 +936,9 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
               >
                 {/* Render AP polygon */}
                 {renderPolygon(apPolygon, apAdjustment)}
+                
+                {/* Render rubber band line for AP */}
+                {renderRubberBandLine(apPolygon, 'ap')}
                 
                 {/* Render crop overlay */}
                 {renderCropOverlay('ap')}
@@ -914,6 +962,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                     handleImageClick(e, 'ml');
                   }
                 }}
+                onMouseMove={(e) => handleMouseMove(e, 'ml')}
                 style={{
                   backgroundImage: patientData.latXrayImage
                     ? `url("${patientData.latXrayImage}")`
@@ -930,6 +979,9 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
               >
                 {/* Render ML polygon */}
                 {renderPolygon(mlPolygon, mlAdjustment)}
+                
+                {/* Render rubber band line for ML */}
+                {renderRubberBandLine(mlPolygon, 'ml')}
                 
                 {/* Render crop overlay */}
                 {renderCropOverlay('ml')}
