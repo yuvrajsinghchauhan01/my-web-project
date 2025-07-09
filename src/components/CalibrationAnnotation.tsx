@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Home, User, ArrowLeft, RotateCcw, Save } from 'lucide-react';
 
 interface CalibrationAnnotationProps {
@@ -19,11 +19,12 @@ interface MarkerData {
   y: number;
   diameter: number;
   rotation: number;
+  arrowRotation: number;
 }
 
 const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, onNext, patientData, onUpdateImages }) => {
-  const [apMarker, setApMarker] = useState<MarkerData>({ x: 50, y: 50, diameter: 25, rotation: 0 });
-  const [latMarker, setLatMarker] = useState<MarkerData>({ x: 50, y: 50, diameter: 25, rotation: 0 });
+  const [apMarker, setApMarker] = useState<MarkerData>({ x: 50, y: 50, diameter: 25, rotation: 0, arrowRotation: 0 });
+  const [latMarker, setLatMarker] = useState<MarkerData>({ x: 50, y: 50, diameter: 25, rotation: 0, arrowRotation: 0 });
   const [apRotation, setApRotation] = useState(0);
   const [latRotation, setLatRotation] = useState(0);
   const [showRotationTooltip, setShowRotationTooltip] = useState({ ap: false, lat: false });
@@ -32,14 +33,15 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
     apXray: patientData.apXrayImage,
     latXray: patientData.latXrayImage
   });
+  const [isDraggingArrow, setIsDraggingArrow] = useState<'ap' | 'lat' | null>(null);
 
   const apImageRef = useRef<HTMLDivElement>(null);
   const latImageRef = useRef<HTMLDivElement>(null);
 
   const handleAutoDetectMarker = () => {
     // Simulate auto-detection
-    setApMarker({ x: 45, y: 60, diameter: 25, rotation: 37 });
-    setLatMarker({ x: 55, y: 65, diameter: 25, rotation: -4 });
+    setApMarker({ x: 45, y: 60, diameter: 25, rotation: 37, arrowRotation: -15 });
+    setLatMarker({ x: 55, y: 65, diameter: 25, rotation: -4, arrowRotation: 90 });
     setCurrentStep('detected');
     
     // Show rotation tooltips
@@ -49,7 +51,9 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
     }, 3000);
   };
 
-  const handleImageClick = (event: React.MouseEvent, imageType: 'ap' | 'lat') => {
+  const handleImageClick = useCallback((event: React.MouseEvent, imageType: 'ap' | 'lat') => {
+    if (isDraggingArrow) return;
+    
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * 100;
     const y = ((event.clientY - rect.top) / rect.height) * 100;
@@ -59,13 +63,43 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
     } else {
       setLatMarker(prev => ({ ...prev, x, y }));
     }
+  }, [isDraggingArrow]);
+
+  const handleArrowDrag = useCallback((event: React.MouseEvent, imageType: 'ap' | 'lat') => {
+    if (!isDraggingArrow || isDraggingArrow !== imageType) return;
+    
+    const rect = event.currentTarget.getBoundingClientRect();
+    const centerX = (imageType === 'ap' ? apMarker.x : latMarker.x) * rect.width / 100;
+    const centerY = (imageType === 'ap' ? apMarker.y : latMarker.y) * rect.height / 100;
+    
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+    
+    const angle = Math.atan2(mouseY - centerY, mouseX - centerX) * (180 / Math.PI);
+    
+    if (imageType === 'ap') {
+      setApMarker(prev => ({ ...prev, arrowRotation: angle }));
+    } else {
+      setLatMarker(prev => ({ ...prev, arrowRotation: angle }));
+    }
+  }, [isDraggingArrow, apMarker.x, apMarker.y, latMarker.x, latMarker.y]);
+
+  const handleMouseDown = (imageType: 'ap' | 'lat') => {
+    setIsDraggingArrow(imageType);
+  };
+
+  const handleMouseUp = () => {
+    setIsDraggingArrow(null);
   };
 
   const handleSave = () => {
     setCurrentStep('straightened');
-    // Simulate image straightening
-    setApRotation(0);
-    setLatRotation(0);
+    // Calculate rotation needed to straighten based on arrow direction
+    const apStraightenRotation = -apMarker.arrowRotation;
+    const latStraightenRotation = -latMarker.arrowRotation;
+    
+    setApRotation(apStraightenRotation);
+    setLatRotation(latStraightenRotation);
   };
 
   const handleImageUpload = (type: 'ap' | 'lat') => {
@@ -111,9 +145,33 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
         <div className="absolute w-3 h-3 bg-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
       </div>
       
+      {/* Arrow Direction Indicator */}
+      <div 
+        className="absolute pointer-events-auto cursor-grab active:cursor-grabbing"
+        style={{ 
+          transform: `rotate(${marker.arrowRotation}deg)`,
+          transformOrigin: 'center'
+        }}
+        onMouseDown={() => handleMouseDown(imageType)}
+      >
+        {/* Arrow shaft */}
+        <div className="absolute w-12 h-1 bg-yellow-400 -translate-y-1/2"></div>
+        {/* Arrow head */}
+        <div 
+          className="absolute right-0 top-1/2 transform -translate-y-1/2"
+          style={{
+            width: 0,
+            height: 0,
+            borderLeft: '8px solid #fbbf24',
+            borderTop: '4px solid transparent',
+            borderBottom: '4px solid transparent'
+          }}
+        ></div>
+      </div>
+      
       {/* Rotation tooltip */}
       {showRotationTooltip[imageType] && (
-        <div className="absolute top-8 left-8 bg-white px-3 py-1 rounded-lg shadow-lg text-sm font-medium text-gray-800 whitespace-nowrap">
+        <div className="absolute top-8 left-8 bg-white px-3 py-1 rounded-lg shadow-lg text-sm font-medium text-gray-800 whitespace-nowrap pointer-events-none">
           Rotated to {marker.rotation > 0 ? '+' : ''}{marker.rotation} degrees
         </div>
       )}
@@ -260,8 +318,11 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
             <div className="bg-black rounded-3xl overflow-hidden shadow-lg flex items-center justify-center relative">
               <div
                 ref={apImageRef}
-                className="aspect-[3/4] bg-black relative cursor-crosshair flex items-center justify-center  h-[700px]"
+                className="aspect-[3/4] bg-black relative cursor-crosshair flex items-center justify-center h-[700px]"
                 onClick={(e) => handleImageClick(e, 'ap')}
+                onMouseMove={(e) => handleArrowDrag(e, 'ap')}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
                 style={{
                   backgroundImage: uploadedImages.apXray 
                     ? `url("${uploadedImages.apXray}")`
@@ -269,7 +330,7 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
                   backgroundSize: 'contain',
                   backgroundRepeat: 'no-repeat',
                   backgroundPosition: 'center',
-                  transform: currentStep === 'straightened' ? 'rotate(0deg)' : `rotate(${apRotation}deg)`,
+                  transform: currentStep === 'straightened' ? `rotate(${apRotation}deg)` : 'rotate(0deg)',
                   transition: 'transform 0.5s ease-in-out',
                   width: '100%',
                   height: '100%'
@@ -285,6 +346,9 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
                 ref={latImageRef}
                 className="aspect-[3/4] bg-black relative cursor-crosshair flex items-center justify-center"
                 onClick={(e) => handleImageClick(e, 'lat')}
+                onMouseMove={(e) => handleArrowDrag(e, 'lat')}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
                 style={{
                   backgroundImage: uploadedImages.latXray
                     ? `url("${uploadedImages.latXray}")`
@@ -292,7 +356,7 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
                   backgroundSize: 'contain',
                   backgroundRepeat: 'no-repeat',
                   backgroundPosition: 'center',
-                  transform: currentStep === 'straightened' ? 'rotate(0deg)' : `rotate(${latRotation}deg)`,
+                  transform: currentStep === 'straightened' ? `rotate(${latRotation}deg)` : 'rotate(0deg)',
                   transition: 'transform 0.5s ease-in-out',
                   width: '100%',
                   height: '100%'

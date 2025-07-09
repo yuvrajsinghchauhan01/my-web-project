@@ -58,11 +58,19 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
   const [cropMode, setCropMode] = useState<'none' | 'ap' | 'ml'>('none');
   const [cropStart, setCropStart] = useState<{ x: number; y: number } | null>(null);
   const [cropEnd, setCropEnd] = useState<{ x: number; y: number } | null>(null);
+  const [segmentAdded, setSegmentAdded] = useState(false);
 
   const apImageRef = useRef<HTMLDivElement>(null);
   const mlImageRef = useRef<HTMLDivElement>(null);
 
   const handleAddBoneSegment = () => {
+    setSegmentAdded(true);
+    setCurrentMode('initial');
+    setDrawingMode('none');
+  };
+
+  const handleResetSegment = () => {
+    setSegmentAdded(false);
     setCurrentMode('initial');
     setDrawingMode('none');
     setApPolygon({ points: [], isComplete: false });
@@ -75,10 +83,26 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
 
   const handleDrawAP = () => {
     setDrawingMode('ap');
+    setApPolygon({ points: [], isComplete: false });
+    setApSaved(false);
   };
 
   const handleDrawML = () => {
     setDrawingMode('ml');
+    setMlPolygon({ points: [], isComplete: false });
+    setMlSaved(false);
+  };
+
+  const handleEditAP = () => {
+    setDrawingMode('ap');
+    setApPolygon({ points: [], isComplete: false });
+    setApSaved(false);
+  };
+
+  const handleEditML = () => {
+    setDrawingMode('ml');
+    setMlPolygon({ points: [], isComplete: false });
+    setMlSaved(false);
   };
 
   const handleImageClick = useCallback((event: React.MouseEvent, imageType: 'ap' | 'ml') => {
@@ -127,6 +151,9 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
     } else if (drawingMode === 'ml') {
       setMlPolygon({ points: [], isComplete: false });
       setDrawingMode('none');
+    } else {
+      // Discard entire segment
+      handleResetSegment();
     }
   };
 
@@ -521,6 +548,176 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
     );
   };
 
+  const renderControlButtons = () => {
+    if (!segmentAdded) {
+      return (
+        <button
+          onClick={handleAddBoneSegment}
+          className="w-full px-4 py-3 bg-white/20 hover:bg-white/30 rounded-xl font-medium transition-colors duration-200"
+        >
+          Add Bone Segment Annotation
+        </button>
+      );
+    }
+
+    return (
+      <div className="bg-white/10 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-semibold">Segment 1</h4>
+          <button
+            onClick={handleResetSegment}
+            className="w-6 h-6 bg-white/30 rounded-full flex items-center justify-center hover:bg-white/40 transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        
+        {/* Button states based on current state */}
+        {!apSaved && !mlSaved && drawingMode === 'none' && (
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <button
+              onClick={handleDrawAP}
+              className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors duration-200"
+            >
+              Draw AP
+            </button>
+            <button
+              onClick={handleDrawML}
+              className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors duration-200"
+            >
+              Draw ML
+            </button>
+          </div>
+        )}
+        
+        {drawingMode === 'ap' && (
+          <div className="space-y-3">
+            <div className="flex space-x-2">
+              <button
+                onClick={handleSaveAP}
+                disabled={apPolygon.points.length < 3}
+                className="flex-1 px-3 py-2 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm transition-colors duration-200"
+              >
+                Save AP
+              </button>
+              <button
+                onClick={handleDiscardPolygon}
+                className="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-sm transition-colors duration-200"
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+        )}
+
+        {drawingMode === 'ml' && (
+          <div className="space-y-3">
+            <div className="flex space-x-2">
+              <button
+                onClick={handleSaveML}
+                disabled={mlPolygon.points.length < 3}
+                className="flex-1 px-3 py-2 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm transition-colors duration-200"
+              >
+                Save ML
+              </button>
+              <button
+                onClick={handleDiscardPolygon}
+                className="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-sm transition-colors duration-200"
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+        )}
+
+        {apSaved && !mlSaved && drawingMode === 'none' && (
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <button
+              onClick={handleEditAP}
+              className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors duration-200"
+            >
+              Edit AP
+            </button>
+            <button
+              onClick={handleDrawML}
+              className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors duration-200"
+            >
+              Draw ML
+            </button>
+          </div>
+        )}
+
+        {!apSaved && mlSaved && drawingMode === 'none' && (
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <button
+              onClick={handleDrawAP}
+              className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors duration-200"
+            >
+              Draw AP
+            </button>
+            <button
+              onClick={handleEditML}
+              className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors duration-200"
+            >
+              Edit ML
+            </button>
+          </div>
+        )}
+
+        {apSaved && mlSaved && drawingMode === 'none' && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={handleEditAP}
+                className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors duration-200"
+              >
+                Edit AP
+              </button>
+              <button
+                onClick={handleEditML}
+                className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors duration-200"
+              >
+                Edit ML
+              </button>
+              <button
+                onClick={() => {
+                  setAdjustmentMode('ap');
+                  setCurrentMode('adjust');
+                }}
+                className={`px-3 py-2 rounded-lg text-sm transition-colors duration-200 ${
+                  apAdjustmentSaved 
+                    ? 'bg-green-500/30 text-green-100' 
+                    : 'bg-blue-500/20 hover:bg-blue-500/30'
+                }`}
+              >
+                {apAdjustmentSaved ? '✓ AP Saved' : 'Adjust AP'}
+              </button>
+              <button
+                onClick={() => {
+                  setAdjustmentMode('ml');
+                  setCurrentMode('adjust');
+                }}
+                className={`px-3 py-2 rounded-lg text-sm transition-colors duration-200 ${
+                  mlAdjustmentSaved 
+                    ? 'bg-green-500/30 text-green-100' 
+                    : 'bg-blue-500/20 hover:bg-blue-500/30'
+                }`}
+              >
+                {mlAdjustmentSaved ? '✓ ML Saved' : 'Adjust ML'}
+              </button>
+            </div>
+            <button
+              onClick={handleDiscardPolygon}
+              className="w-full px-3 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-sm transition-colors duration-200"
+            >
+              Discard
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
       {/* Header */}
@@ -595,141 +792,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
 
               {/* Annotation Controls */}
               <div className="space-y-6">
-                {currentMode === 'initial' && drawingMode === 'none' && !apSaved && !mlSaved && (
-                  <button
-                    onClick={handleAddBoneSegment}
-                    className="w-full px-4 py-3 bg-white/20 hover:bg-white/30 rounded-xl font-medium transition-colors duration-200"
-                  >
-                    Add Bone Segment Annotation
-                  </button>
-                )}
-
-                {currentMode === 'initial' && (apSaved || mlSaved || drawingMode !== 'none') && (
-                  <div className="bg-white/10 rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-semibold">Segment 1</h4>
-                      <div className="w-6 h-6 bg-white/30 rounded-full flex items-center justify-center">
-                        <X size={16} />
-                      </div>
-                    </div>
-                    
-                    {!apSaved && !mlSaved && drawingMode === 'none' && (
-                      <div className="grid grid-cols-2 gap-2 mb-3">
-                        <button
-                          onClick={handleDrawAP}
-                          className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors duration-200"
-                        >
-                          Draw AP
-                        </button>
-                        <button
-                          onClick={handleDrawML}
-                          className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors duration-200"
-                        >
-                          Draw ML
-                        </button>
-                      </div>
-                    )}
-                    
-                    {drawingMode === 'ap' && (
-                      <div className="space-y-3">
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={handleSaveAP}
-                            disabled={apPolygon.points.length < 3}
-                            className="flex-1 px-3 py-2 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm transition-colors duration-200"
-                          >
-                            Save AP
-                          </button>
-                          <button
-                            onClick={handleDiscardPolygon}
-                            className="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-sm transition-colors duration-200"
-                          >
-                            Discard
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {drawingMode === 'ml' && (
-                      <div className="space-y-3">
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={handleSaveML}
-                            disabled={mlPolygon.points.length < 3}
-                            className="flex-1 px-3 py-2 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm transition-colors duration-200"
-                          >
-                            Save ML
-                          </button>
-                          <button
-                            onClick={handleDiscardPolygon}
-                            className="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-sm transition-colors duration-200"
-                          >
-                            Discard
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {apSaved && mlSaved && currentMode === 'initial' && drawingMode === 'none' && (
-                  <div className="space-y-3">
-                    <div className="bg-white/10 rounded-xl p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold">Segment 1</h4>
-                        <div className="w-6 h-6 bg-white/30 rounded-full flex items-center justify-center">
-                          <X size={16} />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => setDrawingMode('ap')}
-                          className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors duration-200"
-                        >
-                          Edit AP
-                        </button>
-                        <button
-                          onClick={() => setDrawingMode('ml')}
-                          className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors duration-200"
-                        >
-                          Edit ML
-                        </button>
-                        <button
-                          onClick={() => {
-                            setAdjustmentMode('ap');
-                            setCurrentMode('adjust');
-                          }}
-                          className={`px-3 py-2 rounded-lg text-sm transition-colors duration-200 ${
-                            apAdjustmentSaved 
-                              ? 'bg-green-500/30 text-green-100' 
-                              : 'bg-blue-500/20 hover:bg-blue-500/30'
-                          }`}
-                        >
-                          {apAdjustmentSaved ? '✓ AP Saved' : 'Adjust AP'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setAdjustmentMode('ml');
-                            setCurrentMode('adjust');
-                          }}
-                          className={`px-3 py-2 rounded-lg text-sm transition-colors duration-200 ${
-                            mlAdjustmentSaved 
-                              ? 'bg-green-500/30 text-green-100' 
-                              : 'bg-blue-500/20 hover:bg-blue-500/30'
-                          }`}
-                        >
-                          {mlAdjustmentSaved ? '✓ ML Saved' : 'Adjust ML'}
-                        </button>
-                      </div>
-                      <button
-                        onClick={handleDiscardPolygon}
-                        className="w-full mt-2 px-3 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-sm transition-colors duration-200"
-                      >
-                        Discard
-                      </button>
-                    </div>
-                  </div>
-                )}
+                {renderControlButtons()}
 
                 {/* Help Text */}
                 <div className="bg-white/10 rounded-xl p-4 text-xs">
@@ -763,10 +826,10 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                   {currentMode === 'initial' && apAdjustmentSaved && mlAdjustmentSaved && (
                     <p>Both adjustments saved! Click "Next" to proceed to Implant Templating.</p>
                   )}
-                  {currentMode === 'initial' && drawingMode === 'none' && !apSaved && !mlSaved && (
+                  {currentMode === 'initial' && drawingMode === 'none' && !segmentAdded && (
                     <p>Click on "Add Bone Segment Annotation" to start creating polygon annotations on both X-ray images.</p>
                   )}
-                  {currentMode === 'initial' && drawingMode === 'none' && (!apSaved || !mlSaved) && (apSaved || mlSaved) && (
+                  {currentMode === 'initial' && drawingMode === 'none' && segmentAdded && (!apSaved || !mlSaved) && (
                     <p>Click "Draw AP" or "Draw ML" to create polygon annotations on the respective X-ray images.</p>
                   )}
                   {cropMode !== 'none' && (
@@ -800,9 +863,6 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                   backgroundSize: 'contain',
                   backgroundRepeat: 'no-repeat',
                   backgroundPosition: 'center',
-                  // clipPath: apAdjustment.cropWidth < 100 || apAdjustment.cropHeight < 100 
-                  //   ? `inset(${apAdjustment.cropY}% ${100 - apAdjustment.cropX - apAdjustment.cropWidth}% ${100 - apAdjustment.cropY - apAdjustment.cropHeight}% ${apAdjustment.cropX}%)`
-                  //   : 'none',
                   width: '100%',
                   height: '100%',
                 }}
