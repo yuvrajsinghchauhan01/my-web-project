@@ -189,15 +189,25 @@ const ImplantTemplating: React.FC<ImplantTemplatingProps> = ({ onBack, onSave, p
                 {/* Render the bone annotation if available */}
                 {patientData.apPolygon && patientData.apAdjustment && (
                   <>
-                    {/* Semi-transparent mask for original area */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                    {/* Black mask for original area - completely hide the original bone */}
+                    <div 
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        clipPath: `polygon(${patientData.apPolygon.points?.map((p: any) => `${p.x}% ${p.y}%`).join(', ')})`,
+                        backgroundColor: 'black',
+                        zIndex: 5
+                      }}
+                    />
+                    
+                    {/* Alternative SVG mask approach */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 5 }}>
                       <polygon 
                         points={patientData.apPolygon.points?.map((p: any) => `${p.x},${p.y}`).join(' ')}
-                        fill="rgba(0,0,0,0.7)" 
+                        fill="black" 
                       />
                     </svg>
                     
-                    {/* Cropped and adjusted bone segment */}
+                    {/* Cropped and adjusted bone segment - shows above the mask */}
                     <div 
                       className="absolute inset-0 pointer-events-none"
                       style={{
@@ -212,7 +222,7 @@ const ImplantTemplating: React.FC<ImplantTemplatingProps> = ({ onBack, onSave, p
                           scale(${patientData.apAdjustment.scale})
                         `,
                         transformOrigin: `${patientData.apPolygon.points?.reduce((acc: any, p: any) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 }).x / patientData.apPolygon.points?.length || 50}% ${patientData.apPolygon.points?.reduce((acc: any, p: any) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 }).y / patientData.apPolygon.points?.length || 50}%`,
-                        zIndex: 10
+                        zIndex: 15
                       }}
                     />
                   </>
@@ -239,15 +249,25 @@ const ImplantTemplating: React.FC<ImplantTemplatingProps> = ({ onBack, onSave, p
                 {/* Render the bone annotation if available */}
                 {patientData.latPolygon && patientData.latAdjustment && (
                   <>
-                    {/* Semi-transparent mask for original area */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                    {/* Black mask for original area - completely hide the original bone */}
+                    <div 
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        clipPath: `polygon(${patientData.latPolygon.points?.map((p: any) => `${p.x}% ${p.y}%`).join(', ')})`,
+                        backgroundColor: 'black',
+                        zIndex: 5
+                      }}
+                    />
+                    
+                    {/* Alternative SVG mask approach */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 5 }}>
                       <polygon 
                         points={patientData.latPolygon.points?.map((p: any) => `${p.x},${p.y}`).join(' ')}
-                        fill="rgba(0,0,0,0.7)" 
+                        fill="black" 
                       />
                     </svg>
                     
-                    {/* Cropped and adjusted bone segment */}
+                    {/* Cropped and adjusted bone segment - shows above the mask */}
                     <div 
                       className="absolute inset-0 pointer-events-none"
                       style={{
@@ -262,7 +282,7 @@ const ImplantTemplating: React.FC<ImplantTemplatingProps> = ({ onBack, onSave, p
                           scale(${patientData.latAdjustment.scale})
                         `,
                         transformOrigin: `${patientData.latPolygon.points?.reduce((acc: any, p: any) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 }).x / patientData.latPolygon.points?.length || 50}% ${patientData.latPolygon.points?.reduce((acc: any, p: any) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 }).y / patientData.latPolygon.points?.length || 50}%`,
-                        zIndex: 10
+                        zIndex: 15
                       }}
                     />
                   </>

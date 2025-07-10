@@ -360,17 +360,29 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
 
     return (
       <>
-        {/* Semi-transparent mask for original area */}
+        {/* Black mask for original area - completely hide the original bone */}
         {polygon.isComplete && (
-          <svg className="absolute inset-0 w-full h-full pointer-events-none">
+          <div 
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              clipPath: `polygon(${polygon.points.map(p => `${p.x}% ${p.y}%`).join(', ')})`,
+              backgroundColor: 'black',
+              zIndex: 5
+            }}
+          />
+        )}
+
+        {/* Alternative SVG mask approach */}
+        {polygon.isComplete && (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 5 }}>
             <polygon 
               points={polygon.points.map(p => `${p.x},${p.y}`).join(' ')}
-              fill="rgba(0,0,0,0.7)" 
+              fill="black" 
             />
           </svg>
         )}
 
-        {/* Cropped segment with transformations */}
+        {/* Cropped segment with transformations - shows above the mask */}
         {polygon.isComplete && (
           <div 
             className="absolute inset-0 pointer-events-none"
@@ -389,7 +401,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
               `,
               transformOrigin: `${center.x}% ${center.y}%`,
               transition: 'transform 0.2s ease',
-              zIndex: 10
+              zIndex: 15
             }}
           />
         )}
