@@ -1024,7 +1024,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                   backgroundSize: 'contain',
                   backgroundRepeat: 'no-repeat',
                   backgroundPosition: 'center',
-                  transform: `rotate(${patientData.latRotation || 0}deg)`,
+                  transform: `rotate(${currentLatRotation}deg)`,
                   clipPath: mlAdjustment.cropWidth < 100 || mlAdjustment.cropHeight < 100 
                     ? `inset(${mlAdjustment.cropY}% ${100 - mlAdjustment.cropX - mlAdjustment.cropWidth}% ${100 - mlAdjustment.cropY - mlAdjustment.cropHeight}% ${mlAdjustment.cropX}%)`
                     : 'none',

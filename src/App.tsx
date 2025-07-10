@@ -61,7 +61,6 @@ function App() {
     setCurrentView('boneAnnotation');
   };
 
-  const handleBoneAnnotationSave = () => {
     setCurrentView('implantTemplating');
   };
 
