@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Home, User, ArrowLeft, ArrowUp, ArrowDown, ArrowRight, RotateCcw, RotateCw, X } from 'lucide-react';
 
 interface BoneAnnotationProps {
@@ -59,9 +59,27 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
   const [cropStart, setCropStart] = useState<{ x: number; y: number } | null>(null);
   const [cropEnd, setCropEnd] = useState<{ x: number; y: number } | null>(null);
   const [segmentAdded, setSegmentAdded] = useState(false);
+  const [hoverPoint, setHoverPoint] = useState<Point | null>(null);
 
   const apImageRef = useRef<HTMLDivElement>(null);
   const mlImageRef = useRef<HTMLDivElement>(null);
+
+  // Calculate center point for rotation
+  const calculateCenter = (points: Point[]): Point => {
+    if (points.length === 0) return { x: 50, y: 50 };
+    
+    const sum = points.reduce((acc, point) => {
+      return { x: acc.x + point.x, y: acc.y + point.y };
+    }, { x: 0, y: 0 });
+    
+    return {
+      x: sum.x / points.length,
+      y: sum.y / points.length
+    };
+  };
+
+  const apCenter = calculateCenter(apPolygon.points);
+  const mlCenter = calculateCenter(mlPolygon.points);
 
   const handleAddBoneSegment = () => {
     setSegmentAdded(true);
@@ -79,30 +97,35 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
     setMlSaved(false);
     setApAdjustmentSaved(false);
     setMlAdjustmentSaved(false);
+    setHoverPoint(null);
   };
 
   const handleDrawAP = () => {
     setDrawingMode('ap');
     setApPolygon({ points: [], isComplete: false });
     setApSaved(false);
+    setHoverPoint(null);
   };
 
   const handleDrawML = () => {
     setDrawingMode('ml');
     setMlPolygon({ points: [], isComplete: false });
     setMlSaved(false);
+    setHoverPoint(null);
   };
 
   const handleEditAP = () => {
     setDrawingMode('ap');
-    setApPolygon({ points: [], isComplete: false });
+    setApPolygon(prev => ({ ...prev, isComplete: false }));
     setApSaved(false);
+    setHoverPoint(null);
   };
 
   const handleEditML = () => {
     setDrawingMode('ml');
-    setMlPolygon({ points: [], isComplete: false });
+    setMlPolygon(prev => ({ ...prev, isComplete: false }));
     setMlSaved(false);
+    setHoverPoint(null);
   };
 
   const handleImageClick = useCallback((event: React.MouseEvent, imageType: 'ap' | 'ml') => {
@@ -113,6 +136,20 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
     const x = ((event.clientX - rect.left) / rect.width) * 100;
     const y = ((event.clientY - rect.top) / rect.height) * 100;
     
+    // Check if clicking near the first point to close the polygon
+    if (hoverPoint && imageType === drawingMode) {
+      if (imageType === 'ap') {
+        setApPolygon(prev => ({ ...prev, isComplete: true }));
+        setApSaved(true);
+      } else {
+        setMlPolygon(prev => ({ ...prev, isComplete: true }));
+        setMlSaved(true);
+      }
+      setDrawingMode('none');
+      setHoverPoint(null);
+      return;
+    }
+
     const newPoint = { x, y };
     
     if (drawingMode === 'ap') {
@@ -126,7 +163,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
         points: [...prev.points, newPoint]
       }));
     }
-  }, [drawingMode]);
+  }, [drawingMode, hoverPoint]);
 
   const handleMouseMove = useCallback((event: React.MouseEvent, imageType: 'ap' | 'ml') => {
     if (drawingMode === 'none') return;
@@ -136,11 +173,19 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
     const x = ((event.clientX - rect.left) / rect.width) * 100;
     const y = ((event.clientY - rect.top) / rect.height) * 100;
     
-    // Update CSS custom properties for rubber band line
-    const target = event.currentTarget as HTMLElement;
-    target.style.setProperty('--mouse-x', `${x}%`);
-    target.style.setProperty('--mouse-y', `${y}%`);
-  }, [drawingMode]);
+    // Check if close to first point
+    const currentPolygon = imageType === 'ap' ? apPolygon : mlPolygon;
+    if (currentPolygon.points.length > 2) {
+      const firstPoint = currentPolygon.points[0];
+      const distance = Math.sqrt(Math.pow(x - firstPoint.x, 2) + Math.pow(y - firstPoint.y, 2));
+      if (distance < 3) { // 3% threshold
+        setHoverPoint(firstPoint);
+        return;
+      }
+    }
+    setHoverPoint(null);
+  }, [drawingMode, apPolygon, mlPolygon]);
+
   const handleSaveAP = () => {
     if (apPolygon.points.length >= 3) {
       setApPolygon(prev => ({ ...prev, isComplete: true }));
@@ -165,9 +210,9 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
       setMlPolygon({ points: [], isComplete: false });
       setDrawingMode('none');
     } else {
-      // Discard entire segment
       handleResetSegment();
     }
+    setHoverPoint(null);
   };
 
   const handleAdjustment = (direction: 'up' | 'down' | 'left' | 'right') => {
@@ -193,18 +238,13 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
     }
   };
 
-  const handleRotation = (direction: 'clockwise' | 'counterclockwise') => {
+  const handleRotation = (degrees: number) => {
     if (!adjustmentMode) return;
 
-    const value = rotationValue;
     const adjustment = adjustmentMode === 'ap' ? apAdjustment : mlAdjustment;
     const setAdjustment = adjustmentMode === 'ap' ? setApAdjustment : setMlAdjustment;
 
-    if (direction === 'clockwise') {
-      setAdjustment({ ...adjustment, rotation: adjustment.rotation + value });
-    } else {
-      setAdjustment({ ...adjustment, rotation: adjustment.rotation - value });
-    }
+    setAdjustment(prev => ({ ...prev, rotation: prev.rotation + degrees }));
   };
 
   const handleScale = (direction: 'up' | 'down') => {
@@ -294,26 +334,51 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
     }
   };
 
-  const renderPolygon = (polygon: PolygonData, adjustment: AdjustmentState) => {
+  const renderPolygon = (polygon: PolygonData, adjustment: AdjustmentState, center: Point, imageType: 'ap' | 'ml') => {
     if (polygon.points.length === 0) return null;
 
-    const centerX = polygon.points.reduce((sum, point) => sum + point.x, 0) / polygon.points.length;
-    const centerY = polygon.points.reduce((sum, point) => sum + point.y, 0) / polygon.points.length;
-
-    const adjustedPoints = polygon.points.map(point => ({
-      x: point.x + (adjustment.x * 0.1),
-      y: point.y + (adjustment.y * 0.1)
-    }));
-
-
     return (
-      <svg className="absolute inset-0 w-full h-full pointer-events-none">
-        <g transform={`rotate(${adjustment.rotation} ${centerX + (adjustment.x * 0.1)} ${centerY + (adjustment.y * 0.1)})`}>
-          <g transform={`scale(${adjustment.scale})`}>
-            {/* Individual line segments connecting all points */}
-            {adjustedPoints.length > 1 && adjustedPoints.map((point, index) => {
+      <>
+        {/* Mask for original area */}
+        {polygon.isComplete && (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none">
+            <polygon 
+              points={polygon.points.map(p => `${p.x},${p.y}`).join(' ')}
+              fill="rgba(0,0,0,0.7)" 
+            />
+          </svg>
+        )}
+
+        {/* Segment with transformations */}
+        {polygon.isComplete && (
+          <div 
+            className="absolute inset-0"
+            style={{
+              clipPath: `polygon(${polygon.points.map(p => `${p.x}% ${p.y}%`).join(', ')})`,
+              backgroundImage: imageType === 'ap' 
+                ? `url("${patientData.apXrayImage}")`
+                : `url("${patientData.latXrayImage}")`,
+              backgroundSize: 'contain',
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'center',
+              transform: `
+                translate(${adjustment.x}px, ${adjustment.y}px)
+                rotate(${adjustment.rotation}deg)
+                scale(${adjustment.scale})
+              `,
+              transformOrigin: `${center.x}% ${center.y}%`,
+              transition: 'transform 0.2s ease'
+            }}
+          />
+        )}
+
+        {/* Drawing UI */}
+        {!polygon.isComplete && (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none">
+            {/* Lines between points */}
+            {polygon.points.length > 1 && polygon.points.map((point, index) => {
               if (index === 0) return null;
-              const prevPoint = adjustedPoints[index - 1];
+              const prevPoint = polygon.points[index - 1];
               return (
                 <line
                   key={`line-${index}`}
@@ -323,72 +388,40 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                   y2={`${point.y}%`}
                   stroke="#ffff00"
                   strokeWidth="2"
-                  vectorEffect="non-scaling-stroke"
                 />
               );
             })}
-            
-            {/* Closing line for completed polygon */}
-            {polygon.isComplete && adjustedPoints.length > 2 && (
+
+            {/* Closing line when hovered */}
+            {hoverPoint && polygon.points.length > 2 && (
               <line
-                x1={`${adjustedPoints[adjustedPoints.length - 1].x}%`}
-                y1={`${adjustedPoints[adjustedPoints.length - 1].y}%`}
-                x2={`${adjustedPoints[0].x}%`}
-                y2={`${adjustedPoints[0].y}%`}
+                x1={`${polygon.points[polygon.points.length - 1].x}%`}
+                y1={`${polygon.points[polygon.points.length - 1].y}%`}
+                x2={`${hoverPoint.x}%`}
+                y2={`${hoverPoint.y}%`}
                 stroke="#ffff00"
                 strokeWidth="2"
-                vectorEffect="non-scaling-stroke"
               />
             )}
-            
-            {/* Fill for completed polygon */}
-            {polygon.isComplete && adjustedPoints.length > 2 && (
-              <polygon
-                points={adjustedPoints.map(p => `${p.x},${p.y}`).join(' ')}
-                fill="rgba(255, 255, 0, 0.3)"
-                stroke="none"
+
+            {/* Points */}
+            {polygon.points.map((point, index) => (
+              <circle
+                key={index}
+                cx={`${point.x}%`}
+                cy={`${point.y}%`}
+                r="4"
+                fill="#ffff00"
+                stroke="#000"
+                strokeWidth="1"
               />
-            )}
-          </g>
-          
-          {/* Point markers */}
-          {adjustedPoints.map((point, index) => (
-            <circle
-              key={index}
-              cx={`${point.x}%`}
-              cy={`${point.y}%`}
-              r="4"
-              fill="#ffff00"
-              stroke="#000"
-              strokeWidth="1"
-            />
-          ))}
-        </g>
-      </svg>
+            ))}
+          </svg>
+        )}
+      </>
     );
   };
 
-  const renderRubberBandLine = (polygon: PolygonData, imageType: 'ap' | 'ml') => {
-    if (polygon.points.length === 0 || polygon.isComplete) return null;
-    if ((drawingMode === 'ap' && imageType !== 'ap') || (drawingMode === 'ml' && imageType !== 'ml')) return null;
-
-    const lastPoint = polygon.points[polygon.points.length - 1];
-    
-    return (
-      <svg className="absolute inset-0 w-full h-full pointer-events-none">
-        <line
-          x1={`${lastPoint.x}%`}
-          y1={`${lastPoint.y}%`}
-          x2="var(--mouse-x, 50%)"
-          y2="var(--mouse-y, 50%)"
-          stroke="#ffff00"
-          strokeWidth="2"
-          strokeDasharray="5,5"
-          opacity="0.7"
-        />
-      </svg>
-    );
-  };
   const renderCropOverlay = (imageType: 'ap' | 'ml') => {
     if (cropMode !== imageType) return null;
 
@@ -513,79 +546,103 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                 </button>
               </div>
             </>
+          ) : adjustmentType === 'rotation' ? (
+            <>
+              {/* Rotation Controls */}
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => handleRotation(-rotationValue)}
+                  className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                >
+                  <RotateCcw size={16} className="text-white" />
+                </button>
+                <input
+                  type="number"
+                  value={rotationValue}
+                  onChange={(e) => setRotationValue(Number(e.target.value))}
+                  className="w-12 px-2 py-1 bg-white text-black rounded text-center text-sm"
+                  min="1"
+                  max="45"
+                />
+                <button
+                  onClick={() => handleRotation(rotationValue)}
+                  className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                >
+                  <RotateCw size={16} className="text-white" />
+                </button>
+              </div>
+              <div className="flex space-x-2 mt-2">
+                <button 
+                  onClick={() => handleRotation(-90)}
+                  className="px-2 py-1 bg-white/20 hover:bg-white/30 rounded text-sm"
+                >
+                  -90°
+                </button>
+                <button 
+                  onClick={() => handleRotation(90)}
+                  className="px-2 py-1 bg-white/20 hover:bg-white/30 rounded text-sm"
+                >
+                  +90°
+                </button>
+                <button 
+                  onClick={() => handleRotation(-180)}
+                  className="px-2 py-1 bg-white/20 hover:bg-white/30 rounded text-sm"
+                >
+                  -180°
+                </button>
+                <button 
+                  onClick={() => handleRotation(180)}
+                  className="px-2 py-1 bg-white/20 hover:bg-white/30 rounded text-sm"
+                >
+                  +180°
+                </button>
+              </div>
+            </>
+          ) : adjustmentType === 'scale' ? (
+            <>
+              {/* Scale Controls */}
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => handleScale('down')}
+                  className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                >
+                  <span className="text-white text-sm">-</span>
+                </button>
+                <input
+                  type="number"
+                  value={scaleValue}
+                  onChange={(e) => setScaleValue(Number(e.target.value))}
+                  className="w-16 px-2 py-1 bg-white text-black rounded text-center text-sm"
+                  min="0.1"
+                  max="1"
+                  step="0.1"
+                />
+                <button
+                  onClick={() => handleScale('up')}
+                  className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                >
+                  <span className="text-white text-sm">+</span>
+                </button>
+              </div>
+              <div className="text-white text-xs text-center">
+                Current Scale: {adjustmentMode === 'ap' ? apAdjustment.scale.toFixed(1) : mlAdjustment.scale.toFixed(1)}x
+              </div>
+            </>
           ) : (
-            adjustmentType === 'rotation' ? (
-              <>
-                {/* Rotation Controls */}
-                <div className="flex items-center space-x-4">
-                  <button
-                    onClick={() => handleRotation('counterclockwise')}
-                    className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-                  >
-                    <RotateCcw size={16} className="text-white" />
-                  </button>
-                  <input
-                    type="number"
-                    value={rotationValue}
-                    onChange={(e) => setRotationValue(Number(e.target.value))}
-                    className="w-12 px-2 py-1 bg-white text-black rounded text-center text-sm"
-                    min="1"
-                    max="45"
-                  />
-                  <button
-                    onClick={() => handleRotation('clockwise')}
-                    className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-                  >
-                    <RotateCw size={16} className="text-white" />
-                  </button>
-                </div>
-              </>
-            ) : adjustmentType === 'scale' ? (
-              <>
-                {/* Scale Controls */}
-                <div className="flex items-center space-x-4">
-                  <button
-                    onClick={() => handleScale('down')}
-                    className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-                  >
-                    <span className="text-white text-sm">-</span>
-                  </button>
-                  <input
-                    type="number"
-                    value={scaleValue}
-                    onChange={(e) => setScaleValue(Number(e.target.value))}
-                    className="w-16 px-2 py-1 bg-white text-black rounded text-center text-sm"
-                    min="0.1"
-                    max="1"
-                    step="0.1"
-                  />
-                  <button
-                    onClick={() => handleScale('up')}
-                    className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-                  >
-                    <span className="text-white text-sm">+</span>
-                  </button>
-                </div>
+            <>
+              {/* Crop Controls */}
+              <div className="flex flex-col items-center space-y-2">
+                <button
+                  onClick={() => handleCropStart(adjustmentMode as 'ap' | 'ml')}
+                  className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors text-sm"
+                >
+                  Start Crop Selection
+                </button>
                 <div className="text-white text-xs text-center">
-                  Current Scale: {adjustmentMode === 'ap' ? apAdjustment.scale.toFixed(1) : mlAdjustment.scale.toFixed(1)}x
+                  Click to start crop area, then click again to finish
                 </div>
-              </>
-            ) : (
-              <>
-                {/* Crop Controls */}
-                <div className="flex flex-col items-center space-y-2">
-                  <button
-                    onClick={() => handleCropStart(adjustmentMode as 'ap' | 'ml')}
-                    className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors text-sm"
-                  >
-                    Start Crop Selection
-                  </button>
-                  <div className="text-white text-xs text-center">
-                    Click to start crop area, then click again to finish
-                  </div>
-                </div>
-              </>
-            )
+              </div>
+            </>
           )}
 
           <div className="flex space-x-2 mt-4">
@@ -601,13 +658,6 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
             >
               Cancel
             </button>
-          </div>
-          <div className="text-white text-xs text-center">
-            <div>
-              {adjustmentType === 'transition' ? 'Transition' : 
-               adjustmentType === 'rotation' ? 'Rotation' : 
-               adjustmentType === 'scale' ? 'Scale' : 'Crop'}
-            </div>
           </div>
         </div>
       </div>
@@ -638,7 +688,6 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
           </button>
         </div>
         
-        {/* Button states based on current state */}
         {!apSaved && !mlSaved && drawingMode === 'none' && (
           <div className="grid grid-cols-2 gap-2 mb-3">
             <button
@@ -868,10 +917,10 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                     </div>
                   </div>
                   {drawingMode === 'ap' && (
-                    <p>Click on the AP X-ray to create polygon points. You need at least 3 points to save the polygon.</p>
+                    <p>Click on the AP X-ray to create polygon points. Click near the first point to close the polygon.</p>
                   )}
                   {drawingMode === 'ml' && (
-                    <p>Click on the ML X-ray to create polygon points. You need at least 3 points to save the polygon.</p>
+                    <p>Click on the ML X-ray to create polygon points. Click near the first point to close the polygon.</p>
                   )}
                   {currentMode === 'adjust' && (
                     <>
@@ -932,13 +981,15 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                   backgroundPosition: 'center',
                   width: '100%',
                   height: '100%',
+                  clipPath: apAdjustment.cropWidth < 100 || apAdjustment.cropHeight < 100 
+                    ? `inset(${apAdjustment.cropY}% ${100 - apAdjustment.cropX - apAdjustment.cropWidth}% ${100 - apAdjustment.cropY - apAdjustment.cropHeight}% ${apAdjustment.cropX}%)`
+                    : 'none',
                 }}
               >
-                {/* Render AP polygon */}
-                {renderPolygon(apPolygon, apAdjustment)}
+                {/* Background image is rendered via the style */}
                 
-                {/* Render rubber band line for AP */}
-                {renderRubberBandLine(apPolygon, 'ap')}
+                {/* Render AP polygon with mask and segment */}
+                {renderPolygon(apPolygon, apAdjustment, apCenter, 'ap')}
                 
                 {/* Render crop overlay */}
                 {renderCropOverlay('ap')}
@@ -977,11 +1028,10 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                   height: '100%'
                 }}
               >
-                {/* Render ML polygon */}
-                {renderPolygon(mlPolygon, mlAdjustment)}
+                {/* Background image is rendered via the style */}
                 
-                {/* Render rubber band line for ML */}
-                {renderRubberBandLine(mlPolygon, 'ml')}
+                {/* Render ML polygon with mask and segment */}
+                {renderPolygon(mlPolygon, mlAdjustment, mlCenter, 'ml')}
                 
                 {/* Render crop overlay */}
                 {renderCropOverlay('ml')}
@@ -991,7 +1041,6 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
