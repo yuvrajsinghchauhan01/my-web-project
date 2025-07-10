@@ -360,30 +360,17 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
 
     return (
       <>
-        {/* Black mask for original area when segment is moved */}
+        {/* Semi-transparent mask for original area */}
         {polygon.isComplete && (
-          <div className="absolute inset-0 w-full h-full pointer-events-none">
-            <svg className="absolute inset-0 w-full h-full">
-              <defs>
-                <mask id={`mask-${imageType}`}>
-                  <rect width="100%" height="100%" fill="white" />
-                  <polygon 
-                    points={polygon.points.map(p => `${p.x},${p.y}`).join(' ')}
-                    fill="black" 
-                  />
-                </mask>
-              </defs>
-              <rect 
-                width="100%" 
-                height="100%" 
-                fill="black" 
-                mask={`url(#mask-${imageType})`}
-              />
-            </svg>
-          </div>
+          <svg className="absolute inset-0 w-full h-full pointer-events-none">
+            <polygon 
+              points={polygon.points.map(p => `${p.x},${p.y}`).join(' ')}
+              fill="rgba(0,0,0,0.7)" 
+            />
+          </svg>
         )}
 
-        {/* Segment with transformations */}
+        {/* Cropped segment with transformations */}
         {polygon.isComplete && (
           <div 
             className="absolute inset-0 pointer-events-none"

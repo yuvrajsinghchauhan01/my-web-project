@@ -189,28 +189,15 @@ const ImplantTemplating: React.FC<ImplantTemplatingProps> = ({ onBack, onSave, p
                 {/* Render the bone annotation if available */}
                 {patientData.apPolygon && patientData.apAdjustment && (
                   <>
-                    {/* Black mask for original area */}
-                    <div className="absolute inset-0 w-full h-full pointer-events-none">
-                      <svg className="absolute inset-0 w-full h-full">
-                        <defs>
-                          <mask id="mask-ap-implant">
-                            <rect width="100%" height="100%" fill="white" />
-                            <polygon 
-                              points={patientData.apPolygon.points?.map((p: any) => `${p.x},${p.y}`).join(' ')}
-                              fill="black" 
-                            />
-                          </mask>
-                        </defs>
-                        <rect 
-                          width="100%" 
-                          height="100%" 
-                          fill="black" 
-                          mask="url(#mask-ap-implant)"
-                        />
-                      </svg>
-                    </div>
+                    {/* Semi-transparent mask for original area */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                      <polygon 
+                        points={patientData.apPolygon.points?.map((p: any) => `${p.x},${p.y}`).join(' ')}
+                        fill="rgba(0,0,0,0.7)" 
+                      />
+                    </svg>
                     
-                    {/* Adjusted bone segment */}
+                    {/* Cropped and adjusted bone segment */}
                     <div 
                       className="absolute inset-0 pointer-events-none"
                       style={{
@@ -252,28 +239,15 @@ const ImplantTemplating: React.FC<ImplantTemplatingProps> = ({ onBack, onSave, p
                 {/* Render the bone annotation if available */}
                 {patientData.latPolygon && patientData.latAdjustment && (
                   <>
-                    {/* Black mask for original area */}
-                    <div className="absolute inset-0 w-full h-full pointer-events-none">
-                      <svg className="absolute inset-0 w-full h-full">
-                        <defs>
-                          <mask id="mask-lat-implant">
-                            <rect width="100%" height="100%" fill="white" />
-                            <polygon 
-                              points={patientData.latPolygon.points?.map((p: any) => `${p.x},${p.y}`).join(' ')}
-                              fill="black" 
-                            />
-                          </mask>
-                        </defs>
-                        <rect 
-                          width="100%" 
-                          height="100%" 
-                          fill="black" 
-                          mask="url(#mask-lat-implant)"
-                        />
-                      </svg>
-                    </div>
+                    {/* Semi-transparent mask for original area */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                      <polygon 
+                        points={patientData.latPolygon.points?.map((p: any) => `${p.x},${p.y}`).join(' ')}
+                        fill="rgba(0,0,0,0.7)" 
+                      />
+                    </svg>
                     
-                    {/* Adjusted bone segment */}
+                    {/* Cropped and adjusted bone segment */}
                     <div 
                       className="absolute inset-0 pointer-events-none"
                       style={{
