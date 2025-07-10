@@ -11,6 +11,8 @@ interface BoneAnnotationProps {
     lastName: string;
     apXrayImage: string | null;
     latXrayImage: string | null;
+    apRotation?: number;
+    latRotation?: number;
   };
 }
 
@@ -979,6 +981,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                   backgroundSize: 'contain',
                   backgroundRepeat: 'no-repeat',
                   backgroundPosition: 'center',
+                  transform: `rotate(${patientData.apRotation || 0}deg)`,
                   width: '100%',
                   height: '100%',
                   clipPath: apAdjustment.cropWidth < 100 || apAdjustment.cropHeight < 100 
@@ -1021,6 +1024,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                   backgroundSize: 'contain',
                   backgroundRepeat: 'no-repeat',
                   backgroundPosition: 'center',
+                  transform: `rotate(${patientData.latRotation || 0}deg)`,
                   clipPath: mlAdjustment.cropWidth < 100 || mlAdjustment.cropHeight < 100 
                     ? `inset(${mlAdjustment.cropY}% ${100 - mlAdjustment.cropX - mlAdjustment.cropWidth}% ${100 - mlAdjustment.cropY - mlAdjustment.cropHeight}% ${mlAdjustment.cropX}%)`
                     : 'none',

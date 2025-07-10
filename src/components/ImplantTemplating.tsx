@@ -10,6 +10,8 @@ interface ImplantTemplatingProps {
     lastName: string;
     apXrayImage: string | null;
     latXrayImage: string | null;
+    apRotation?: number;
+    latRotation?: number;
   };
 }
 
@@ -174,6 +176,7 @@ const ImplantTemplating: React.FC<ImplantTemplatingProps> = ({ onBack, onSave, p
                   backgroundSize: 'contain',
                   backgroundRepeat: 'no-repeat',
                   backgroundPosition: 'center',
+                  transform: `rotate(${patientData.apRotation || 0}deg)`,
                   width: '100%',
                   height: '100%',
                   
@@ -193,6 +196,7 @@ const ImplantTemplating: React.FC<ImplantTemplatingProps> = ({ onBack, onSave, p
                   backgroundSize: 'contain',
                   backgroundPosition: 'center',
                   backgroundRepeat: 'no-repeat',
+                  transform: `rotate(${patientData.latRotation || 0}deg)`,
                   width: '100%',
                   height: '100%',
                 }}

@@ -68,6 +68,14 @@ const NewPatientForm: React.FC<NewPatientFormProps> = ({ onBack, onSave }) => {
     onBack();
   };
 
+  // Device detection for iPad Pro
+  const isIPadPro = () => {
+    const userAgent = navigator.userAgent;
+    const isIPad = /iPad/.test(userAgent);
+    const isLargeScreen = window.screen.width >= 1024 && window.screen.height >= 1366;
+    return isIPad && isLargeScreen;
+  };
+
   const handleFileUpload = (type: 'camera' | 'file', xrayType: 'AP' | 'LAT') => {
     if (type === 'file') {
       // Create a file input element
@@ -306,7 +314,7 @@ const NewPatientForm: React.FC<NewPatientFormProps> = ({ onBack, onSave }) => {
                 <div className="bg-gradient-to-br from-purple-100 to-blue-100 rounded-3xl p-8 shadow-lg border border-gray-100 relative h-[280px]">
                   <h3 className="text-2xl font-semibold text-gray-800 mb-8 text-center">Upload AP Xray</h3>
                   
-                  <div className="flex items-center justify-center space-x-8">
+                  <div className={`flex items-center justify-center ${isIPadPro() ? 'justify-center' : 'space-x-8'}`}>
                     <button
                       onClick={() => handleFileUpload('camera', 'AP')}
                       className="flex flex-col items-center space-y-3 p-6 hover:bg-white/50 rounded-2xl transition-all duration-300 transform hover:scale-105"
@@ -320,20 +328,22 @@ const NewPatientForm: React.FC<NewPatientFormProps> = ({ onBack, onSave }) => {
                       </div>
                     </button>
 
-                    <div className="text-gray-500 font-medium text-lg">OR</div>
+                    {!isIPadPro() && <div className="text-gray-500 font-medium text-lg">OR</div>}
 
-                    <button
-                      onClick={() => handleFileUpload('file', 'AP')}
-                      className="flex flex-col items-center space-y-3 p-6 hover:bg-white/50 rounded-2xl transition-all duration-300 transform hover:scale-105"
-                    >
-                      <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-                        <Upload size={28} className="text-white" />
-                      </div>
-                      <div className="text-center">
-                        <p className="text-gray-700 font-medium">Upload</p>
-                        <p className="text-gray-600 text-sm">from files</p>
-                      </div>
-                    </button>
+                    {!isIPadPro() && (
+                      <button
+                        onClick={() => handleFileUpload('file', 'AP')}
+                        className="flex flex-col items-center space-y-3 p-6 hover:bg-white/50 rounded-2xl transition-all duration-300 transform hover:scale-105"
+                      >
+                        <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+                          <Upload size={28} className="text-white" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-gray-700 font-medium">Upload</p>
+                          <p className="text-gray-600 text-sm">from files</p>
+                        </div>
+                      </button>
+                    )}
                   </div>
                 </div>
               )
@@ -364,7 +374,7 @@ const NewPatientForm: React.FC<NewPatientFormProps> = ({ onBack, onSave }) => {
               (
                 <div className="bg-gradient-to-br from-purple-100 to-blue-100 rounded-3xl p-8 shadow-lg border border-gray-100 relative">
                   <h3 className="text-2xl font-semibold text-gray-800 mb-8 text-center">Upload LAT Xray</h3>
-                  <div className="flex items-center justify-center space-x-8">
+                  <div className={`flex items-center justify-center ${isIPadPro() ? 'justify-center' : 'space-x-8'}`}>
                     <button
                       onClick={() => handleFileUpload('camera', 'LAT')}
                       className="flex flex-col items-center space-y-3 p-6 hover:bg-white/50 rounded-2xl transition-all duration-300 transform hover:scale-105"
@@ -378,20 +388,22 @@ const NewPatientForm: React.FC<NewPatientFormProps> = ({ onBack, onSave }) => {
                       </div>
                     </button>
 
-                    <div className="text-gray-500 font-medium text-lg">OR</div>
+                    {!isIPadPro() && <div className="text-gray-500 font-medium text-lg">OR</div>}
 
-                    <button
-                      onClick={() => handleFileUpload('file', 'LAT')}
-                      className="flex flex-col items-center space-y-3 p-6 hover:bg-white/50 rounded-2xl transition-all duration-300 transform hover:scale-105"
-                    >
-                      <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-                        <Upload size={28} className="text-white" />
-                      </div>
-                      <div className="text-center">
-                        <p className="text-gray-700 font-medium">Upload</p>
-                        <p className="text-gray-600 text-sm">from files</p>
-                      </div>
-                    </button>
+                    {!isIPadPro() && (
+                      <button
+                        onClick={() => handleFileUpload('file', 'LAT')}
+                        className="flex flex-col items-center space-y-3 p-6 hover:bg-white/50 rounded-2xl transition-all duration-300 transform hover:scale-105"
+                      >
+                        <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+                          <Upload size={28} className="text-white" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-gray-700 font-medium">Upload</p>
+                          <p className="text-gray-600 text-sm">from files</p>
+                        </div>
+                      </button>
+                    )}
                   </div>
                 </div>
               )

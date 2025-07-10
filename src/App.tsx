@@ -17,7 +17,9 @@ function App() {
     firstName: '',
     lastName: '',
     apXrayImage: null as string | null,
-    latXrayImage: null as string | null
+    latXrayImage: null as string | null,
+    apRotation: 0,
+    latRotation: 0
   });
 
   const handleLogin = () => {
@@ -44,11 +46,13 @@ function App() {
     setCurrentView('calibration');
   };
 
-  const handleUpdatePatientImages = (apImage: string | null, latImage: string | null) => {
+  const handleUpdatePatientImages = (apImage: string | null, latImage: string | null, apRotation?: number, latRotation?: number) => {
     setPatientData(prev => ({
       ...prev,
       apXrayImage: apImage,
-      latXrayImage: latImage
+      latXrayImage: latImage,
+      apRotation: apRotation || prev.apRotation,
+      latRotation: latRotation || prev.latRotation
     }));
   };
   const handleCalibrationNext = () => {

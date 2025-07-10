@@ -136,6 +136,11 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
     
     setApRotation(apStraightenRotation);
     setLatRotation(latStraightenRotation);
+    
+    // Update images with rotation applied - this will be passed to next component
+    // In a real implementation, you would apply the rotation to the actual image data
+    // For now, we'll pass the rotation values along with the images
+    onUpdateImages(uploadedImages.apXray, uploadedImages.latXray);
   };
 
   const handleImageUpload = (type: 'ap' | 'lat') => {
@@ -347,13 +352,15 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
                 </button>
 
                 {/* Reset Markers Button */}
-                <button
-                  onClick={handleResetMarkers}
-                  className="w-full px-4 py-3 bg-red-500/20 hover:bg-red-500/30 rounded-xl font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
-                >
-                  <RotateCcw size={16} />
-                  <span>Reset Markers</span>
-                </button>
+                {currentStep === 'straightened' && (
+                  <button
+                    onClick={handleResetMarkers}
+                    className="w-full px-4 py-3 bg-red-500/20 hover:bg-red-500/30 rounded-xl font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
+                  >
+                    <RotateCcw size={16} />
+                    <span>Reset Markers</span>
+                  </button>
+                )}
 
                 {/* Help Text */}
                 <div className="bg-white/10 rounded-xl p-4 text-xs">
