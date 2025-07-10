@@ -20,11 +20,26 @@ interface MarkerData {
   diameter: number;
   rotation: number;
   arrowRotation: number;
+  isPositionSet: boolean; // NEW: Track if position is set
 }
 
 const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, onNext, patientData, onUpdateImages }) => {
-  const [apMarker, setApMarker] = useState<MarkerData>({ x: 50, y: 50, diameter: 25, rotation: 0, arrowRotation: 0 });
-  const [latMarker, setLatMarker] = useState<MarkerData>({ x: 50, y: 50, diameter: 25, rotation: 0, arrowRotation: 0 });
+  const [apMarker, setApMarker] = useState<MarkerData>({ 
+    x: 50, 
+    y: 50, 
+    diameter: 25, 
+    rotation: 0, 
+    arrowRotation: 0,
+    isPositionSet: false // NEW: Initially false
+  });
+  const [latMarker, setLatMarker] = useState<MarkerData>({ 
+    x: 50, 
+    y: 50, 
+    diameter: 25, 
+    rotation: 0, 
+    arrowRotation: 0,
+    isPositionSet: false // NEW: Initially false
+  });
   const [apRotation, setApRotation] = useState(0);
   const [latRotation, setLatRotation] = useState(0);
   const [showRotationTooltip, setShowRotationTooltip] = useState({ ap: false, lat: false });
@@ -34,17 +49,30 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
     latXray: patientData.latXrayImage
   });
   const [isDraggingArrow, setIsDraggingArrow] = useState<'ap' | 'lat' | null>(null);
-  const [markersFixed, setMarkersFixed] = useState(false);
+  // REMOVED: markersFixed state - no longer needed
 
   const apImageRef = useRef<HTMLDivElement>(null);
   const latImageRef = useRef<HTMLDivElement>(null);
 
   const handleAutoDetectMarker = () => {
-    // Simulate auto-detection
-    setApMarker({ x: 45, y: 60, diameter: 25, rotation: 37, arrowRotation: -15 });
-    setLatMarker({ x: 55, y: 65, diameter: 25, rotation: -4, arrowRotation: 90 });
+    // Simulate auto-detection but keep position adjustable
+    setApMarker({ 
+      x: 45, 
+      y: 60, 
+      diameter: 25, 
+      rotation: 37, 
+      arrowRotation: -15,
+      isPositionSet: false // CHANGED: Keep position adjustable after auto-detect
+    });
+    setLatMarker({ 
+      x: 55, 
+      y: 65, 
+      diameter: 25, 
+      rotation: -4, 
+      arrowRotation: 90,
+      isPositionSet: false // CHANGED: Keep position adjustable after auto-detect
+    });
     setCurrentStep('detected');
-    setMarkersFixed(true);
     
     // Show rotation tooltips
     setShowRotationTooltip({ ap: true, lat: true });
@@ -54,18 +82,24 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
   };
 
   const handleImageClick = useCallback((event: React.MouseEvent, imageType: 'ap' | 'lat') => {
-    if (isDraggingArrow || markersFixed) return;
+    // Only prevent if dragging arrow
+    if (isDraggingArrow) return;
+    
+    const currentMarker = imageType === 'ap' ? apMarker : latMarker;
+    
+    // Only allow position change if position is not set yet
+    if (currentMarker.isPositionSet) return;
     
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * 100;
     const y = ((event.clientY - rect.top) / rect.height) * 100;
     
     if (imageType === 'ap') {
-      setApMarker(prev => ({ ...prev, x, y }));
+      setApMarker(prev => ({ ...prev, x, y, isPositionSet: true }));
     } else {
-      setLatMarker(prev => ({ ...prev, x, y }));
+      setLatMarker(prev => ({ ...prev, x, y, isPositionSet: true }));
     }
-  }, [isDraggingArrow]);
+  }, [isDraggingArrow, apMarker, latMarker]);
 
   const handleArrowDrag = useCallback((event: React.MouseEvent, imageType: 'ap' | 'lat') => {
     if (!isDraggingArrow || isDraggingArrow !== imageType) return;
@@ -119,10 +153,12 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
             [type === 'ap' ? 'apXray' : 'latXray']: imageUrl
           }));
           
-          // Update parent component
+          // Reset marker position when new image is uploaded
           if (type === 'ap') {
+            setApMarker(prev => ({ ...prev, isPositionSet: false }));
             onUpdateImages(imageUrl, uploadedImages.latXray);
           } else {
+            setLatMarker(prev => ({ ...prev, isPositionSet: false }));
             onUpdateImages(uploadedImages.apXray, imageUrl);
           }
         };
@@ -130,6 +166,13 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
       }
     };
     input.click();
+  };
+
+  // Add reset function
+  const handleResetMarkers = () => {
+    setApMarker(prev => ({ ...prev, isPositionSet: false }));
+    setLatMarker(prev => ({ ...prev, isPositionSet: false }));
+    setCurrentStep('initial');
   };
 
   const renderMarker = (marker: MarkerData, imageType: 'ap' | 'lat') => (
@@ -303,6 +346,15 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
                   <span>Auto Detect Marker</span>
                 </button>
 
+                {/* Reset Markers Button */}
+                <button
+                  onClick={handleResetMarkers}
+                  className="w-full px-4 py-3 bg-red-500/20 hover:bg-red-500/30 rounded-xl font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
+                >
+                  <RotateCcw size={16} />
+                  <span>Reset Markers</span>
+                </button>
+
                 {/* Help Text */}
                 <div className="bg-white/10 rounded-xl p-4 text-xs">
                   <div className="flex items-center space-x-2 mb-2">
@@ -322,8 +374,10 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
             <div className="bg-black rounded-3xl overflow-hidden shadow-lg flex items-center justify-center relative">
               <div
                 ref={apImageRef}
-                className="aspect-[3/4] bg-black relative cursor-crosshair flex items-center justify-center h-[700px]"
-                onClick={(e) => !markersFixed && handleImageClick(e, 'ap')}
+                className={`aspect-[3/4] bg-black relative flex items-center justify-center h-[700px] ${
+                  !apMarker.isPositionSet && currentStep !== 'initial' ? 'cursor-crosshair' : 'cursor-default'
+                }`}
+                onClick={(e) => handleImageClick(e, 'ap')}
                 onMouseMove={(e) => handleArrowDrag(e, 'ap')}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
@@ -348,8 +402,10 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
             <div className="bg-black rounded-3xl overflow-hidden shadow-lg flex items-center justify-center relative">
               <div
                 ref={latImageRef}
-                className="aspect-[3/4] bg-black relative cursor-crosshair flex items-center justify-center"
-                onClick={(e) => !markersFixed && handleImageClick(e, 'lat')}
+                className={`aspect-[3/4] bg-black relative flex items-center justify-center ${
+                  !latMarker.isPositionSet && currentStep !== 'initial' ? 'cursor-crosshair' : 'cursor-default'
+                }`}
+                onClick={(e) => handleImageClick(e, 'lat')}
                 onMouseMove={(e) => handleArrowDrag(e, 'lat')}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
