@@ -12,6 +12,10 @@ interface ImplantTemplatingProps {
     latXrayImage: string | null;
     apRotation?: number;
     latRotation?: number;
+    apPolygon?: any;
+    latPolygon?: any;
+    apAdjustment?: any;
+    latAdjustment?: any;
   };
 }
 
@@ -182,6 +186,50 @@ const ImplantTemplating: React.FC<ImplantTemplatingProps> = ({ onBack, onSave, p
                   
                 }}
               >
+                {/* Render the bone annotation if available */}
+                {patientData.apPolygon && patientData.apAdjustment && (
+                  <>
+                    {/* Black mask for original area */}
+                    <div className="absolute inset-0 w-full h-full pointer-events-none">
+                      <svg className="absolute inset-0 w-full h-full">
+                        <defs>
+                          <mask id="mask-ap-implant">
+                            <rect width="100%" height="100%" fill="white" />
+                            <polygon 
+                              points={patientData.apPolygon.points?.map((p: any) => `${p.x},${p.y}`).join(' ')}
+                              fill="black" 
+                            />
+                          </mask>
+                        </defs>
+                        <rect 
+                          width="100%" 
+                          height="100%" 
+                          fill="black" 
+                          mask="url(#mask-ap-implant)"
+                        />
+                      </svg>
+                    </div>
+                    
+                    {/* Adjusted bone segment */}
+                    <div 
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        clipPath: `polygon(${patientData.apPolygon.points?.map((p: any) => `${p.x}% ${p.y}%`).join(', ')})`,
+                        backgroundImage: `url("${patientData.apXrayImage}")`,
+                        backgroundSize: 'contain',
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'center',
+                        transform: `
+                          translate(${patientData.apAdjustment.x}px, ${patientData.apAdjustment.y}px)
+                          rotate(${patientData.apAdjustment.rotation}deg)
+                          scale(${patientData.apAdjustment.scale})
+                        `,
+                        transformOrigin: `${patientData.apPolygon.points?.reduce((acc: any, p: any) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 }).x / patientData.apPolygon.points?.length || 50}% ${patientData.apPolygon.points?.reduce((acc: any, p: any) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 }).y / patientData.apPolygon.points?.length || 50}%`,
+                        zIndex: 10
+                      }}
+                    />
+                  </>
+                )}
               </div>
             </div>
 
@@ -201,6 +249,50 @@ const ImplantTemplating: React.FC<ImplantTemplatingProps> = ({ onBack, onSave, p
                   height: '100%',
                 }}
               >
+                {/* Render the bone annotation if available */}
+                {patientData.latPolygon && patientData.latAdjustment && (
+                  <>
+                    {/* Black mask for original area */}
+                    <div className="absolute inset-0 w-full h-full pointer-events-none">
+                      <svg className="absolute inset-0 w-full h-full">
+                        <defs>
+                          <mask id="mask-lat-implant">
+                            <rect width="100%" height="100%" fill="white" />
+                            <polygon 
+                              points={patientData.latPolygon.points?.map((p: any) => `${p.x},${p.y}`).join(' ')}
+                              fill="black" 
+                            />
+                          </mask>
+                        </defs>
+                        <rect 
+                          width="100%" 
+                          height="100%" 
+                          fill="black" 
+                          mask="url(#mask-lat-implant)"
+                        />
+                      </svg>
+                    </div>
+                    
+                    {/* Adjusted bone segment */}
+                    <div 
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        clipPath: `polygon(${patientData.latPolygon.points?.map((p: any) => `${p.x}% ${p.y}%`).join(', ')})`,
+                        backgroundImage: `url("${patientData.latXrayImage}")`,
+                        backgroundSize: 'contain',
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'center',
+                        transform: `
+                          translate(${patientData.latAdjustment.x}px, ${patientData.latAdjustment.y}px)
+                          rotate(${patientData.latAdjustment.rotation}deg)
+                          scale(${patientData.latAdjustment.scale})
+                        `,
+                        transformOrigin: `${patientData.latPolygon.points?.reduce((acc: any, p: any) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 }).x / patientData.latPolygon.points?.length || 50}% ${patientData.latPolygon.points?.reduce((acc: any, p: any) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 }).y / patientData.latPolygon.points?.length || 50}%`,
+                        zIndex: 10
+                      }}
+                    />
+                  </>
+                )}
               </div>
             </div>
           </div>

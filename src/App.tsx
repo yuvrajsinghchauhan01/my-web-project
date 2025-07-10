@@ -19,7 +19,12 @@ function App() {
     apXrayImage: null as string | null,
     latXrayImage: null as string | null,
     apRotation: 0,
-    latRotation: 0
+    latRotation: 0,
+    // Bone annotation data
+    apPolygon: null as any,
+    latPolygon: null as any,
+    apAdjustment: null as any,
+    latAdjustment: null as any
   });
 
   const handleLogin = () => {
@@ -43,7 +48,11 @@ function App() {
       apXrayImage: data.apXrayImage || null,
       latXrayImage: data.latXrayImage || null,
       apRotation: 0,
-      latRotation: 0
+      latRotation: 0,
+      apPolygon: null,
+      latPolygon: null,
+      apAdjustment: null,
+      latAdjustment: null
     });
     setCurrentView('calibration');
   };
@@ -62,6 +71,15 @@ function App() {
   };
 
   const handleBoneAnnotationSave = () => {
+    // This will be called with the bone annotation data
+    setCurrentView('implantTemplating');
+  };
+
+  const handleBoneAnnotationSaveWithData = (boneData: any) => {
+    setPatientData(prev => ({
+      ...prev,
+      ...boneData
+    }));
     setCurrentView('implantTemplating');
   };
 
@@ -85,8 +103,8 @@ function App() {
       return (
         <BoneAnnotation 
           onBack={() => setCurrentView('calibration')}
-          onSave={handleBoneAnnotationSave}
-          onNext={handleBoneAnnotationSave}
+          onSave={handleBoneAnnotationSaveWithData}
+          onNext={handleBoneAnnotationSaveWithData}
           patientData={patientData}
         />
       );

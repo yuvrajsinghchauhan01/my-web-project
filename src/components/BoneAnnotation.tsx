@@ -3,8 +3,8 @@ import { Home, User, ArrowLeft, ArrowUp, ArrowDown, ArrowRight, RotateCcw, Rotat
 
 interface BoneAnnotationProps {
   onBack: () => void;
-  onSave: () => void;
-  onNext: () => void;
+  onSave: (data: any) => void;
+  onNext: (data: any) => void;
   patientData: {
     patientId: string;
     firstName: string;
@@ -13,6 +13,10 @@ interface BoneAnnotationProps {
     latXrayImage: string | null;
     apRotation?: number;
     latRotation?: number;
+    apPolygon?: any;
+    latPolygon?: any;
+    apAdjustment?: any;
+    latAdjustment?: any;
   };
 }
 
@@ -337,10 +341,17 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
   };
 
   const handleFinalSave = () => {
+    const boneAnnotationData = {
+      apPolygon,
+      latPolygon: mlPolygon,
+      apAdjustment,
+      latAdjustment: mlAdjustment
+    };
+    
     if (apAdjustmentSaved && mlAdjustmentSaved) {
-      onNext();
+      onNext(boneAnnotationData);
     } else {
-      onSave();
+      onSave(boneAnnotationData);
     }
   };
 
@@ -349,20 +360,33 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
 
     return (
       <>
-        {/* Mask for original area */}
+        {/* Black mask for original area when segment is moved */}
         {polygon.isComplete && (
-          <svg className="absolute inset-0 w-full h-full pointer-events-none">
-            <polygon 
-              points={polygon.points.map(p => `${p.x},${p.y}`).join(' ')}
-              fill="rgba(0,0,0,0.7)" 
-            />
-          </svg>
+          <div className="absolute inset-0 w-full h-full pointer-events-none">
+            <svg className="absolute inset-0 w-full h-full">
+              <defs>
+                <mask id={`mask-${imageType}`}>
+                  <rect width="100%" height="100%" fill="white" />
+                  <polygon 
+                    points={polygon.points.map(p => `${p.x},${p.y}`).join(' ')}
+                    fill="black" 
+                  />
+                </mask>
+              </defs>
+              <rect 
+                width="100%" 
+                height="100%" 
+                fill="black" 
+                mask={`url(#mask-${imageType})`}
+              />
+            </svg>
+          </div>
         )}
 
         {/* Segment with transformations */}
         {polygon.isComplete && (
           <div 
-            className="absolute inset-0"
+            className="absolute inset-0 pointer-events-none"
             style={{
               clipPath: `polygon(${polygon.points.map(p => `${p.x}% ${p.y}%`).join(', ')})`,
               backgroundImage: imageType === 'ap' 
@@ -377,7 +401,8 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                 scale(${adjustment.scale})
               `,
               transformOrigin: `${center.x}% ${center.y}%`,
-              transition: 'transform 0.2s ease'
+              transition: 'transform 0.2s ease',
+              zIndex: 10
             }}
           />
         )}
