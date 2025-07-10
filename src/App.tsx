@@ -41,7 +41,9 @@ function App() {
       firstName: data.firstName || 'Deepak',
       lastName: data.lastName || 'Kumar',
       apXrayImage: data.apXrayImage || null,
-      latXrayImage: data.latXrayImage || null
+      latXrayImage: data.latXrayImage || null,
+      apRotation: 0,
+      latRotation: 0
     });
     setCurrentView('calibration');
   };

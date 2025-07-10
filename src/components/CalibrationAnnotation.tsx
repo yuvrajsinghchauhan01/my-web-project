@@ -137,10 +137,8 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
     setApRotation(apStraightenRotation);
     setLatRotation(latStraightenRotation);
     
-    // Update images with rotation applied - this will be passed to next component
-    // In a real implementation, you would apply the rotation to the actual image data
-    // For now, we'll pass the rotation values along with the images
-    onUpdateImages(uploadedImages.apXray, uploadedImages.latXray);
+    // Pass the rotation values along with the images to the next component
+    onUpdateImages(uploadedImages.apXray, uploadedImages.latXray, apStraightenRotation, latStraightenRotation);
   };
 
   const handleImageUpload = (type: 'ap' | 'lat') => {
