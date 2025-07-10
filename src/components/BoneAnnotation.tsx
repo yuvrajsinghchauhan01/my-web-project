@@ -62,9 +62,17 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
   const [cropEnd, setCropEnd] = useState<{ x: number; y: number } | null>(null);
   const [segmentAdded, setSegmentAdded] = useState(false);
   const [hoverPoint, setHoverPoint] = useState<Point | null>(null);
+  const [currentApRotation, setCurrentApRotation] = useState(0);
+  const [currentLatRotation, setCurrentLatRotation] = useState(0);
 
   const apImageRef = useRef<HTMLDivElement>(null);
   const mlImageRef = useRef<HTMLDivElement>(null);
+
+  // Initialize rotation values from patient data
+  useEffect(() => {
+    setCurrentApRotation(patientData.apRotation || 0);
+    setCurrentLatRotation(patientData.latRotation || 0);
+  }, [patientData.apRotation, patientData.latRotation]);
 
   // Calculate center point for rotation
   const calculateCenter = (points: Point[]): Point => {
@@ -981,7 +989,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                   backgroundSize: 'contain',
                   backgroundRepeat: 'no-repeat',
                   backgroundPosition: 'center',
-                  transform: `rotate(${patientData.apRotation || 0}deg)`,
+                  transform: `rotate(${currentApRotation}deg)`,
                   width: '100%',
                   height: '100%',
                   clipPath: apAdjustment.cropWidth < 100 || apAdjustment.cropHeight < 100 

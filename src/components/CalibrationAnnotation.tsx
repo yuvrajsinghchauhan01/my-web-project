@@ -12,6 +12,7 @@ interface CalibrationAnnotationProps {
     latXrayImage: string | null;
   };
   onUpdateImages: (apImage: string | null, latImage: string | null) => void;
+  onUpdateImages: (apImage: string | null, latImage: string | null, apRotation?: number, latRotation?: number) => void;
 }
 
 interface MarkerData {
