@@ -34,6 +34,7 @@ interface AdjustmentState {
   x: number;
   y: number;
   rotation: number;
+  scale: number; // Added scale
 }
 
 const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext, patientData }) => {
@@ -44,10 +45,10 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
   const [mlSaved, setMlSaved] = useState(false);
   const [adjustmentMode, setAdjustmentMode] = useState<'ap' | 'ml' | null>(null);
   const [apAdjustment, setApAdjustment] = useState<AdjustmentState>({ 
-    x: 0, y: 0, rotation: 0
+    x: 0, y: 0, rotation: 0, scale: 1 // Default scale 1
   });
   const [mlAdjustment, setMlAdjustment] = useState<AdjustmentState>({ 
-    x: 0, y: 0, rotation: 0
+    x: 0, y: 0, rotation: 0, scale: 1 // Default scale 1
   });
   const [adjustmentValue, setAdjustmentValue] = useState(2);
   const [rotationValue, setRotationValue] = useState(5);
@@ -265,9 +266,9 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
 
   const handleCancelAdjustment = () => {
     if (adjustmentMode === 'ap') {
-      setApAdjustment({ x: 0, y: 0, rotation: 0 });
+      setApAdjustment({ x: 0, y: 0, rotation: 0, scale: 1 }); // Reset scale
     } else if (adjustmentMode === 'ml') {
-      setMlAdjustment({ x: 0, y: 0, rotation: 0 });
+      setMlAdjustment({ x: 0, y: 0, rotation: 0, scale: 1 }); // Reset scale
     }
     setAdjustmentMode(null);
     setCurrentMode('initial');
