@@ -823,7 +823,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
               <div
                 ref={apImageRef}
                 className={`aspect-[3/4] bg-black relative ${
-                  drawingMode === 'ap' || cropMode === 'ap' ? 'cursor-crosshair' : 'cursor-default'
+                  drawingMode === 'ap' ? 'cursor-crosshair' : 'cursor-default'
                 }`}
                 onClick={(e) => {
                   handleImageClick(e, 'ap');
@@ -856,7 +856,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
               <div
                 ref={mlImageRef}
                 className={`aspect-[3/4] bg-black relative ${
-                  drawingMode === 'ml' || cropMode === 'ml' ? 'cursor-crosshair' : 'cursor-default'
+                  drawingMode === 'ml' ? 'cursor-crosshair' : 'cursor-default'
                 }`}
                 onClick={(e) => {
                   handleImageClick(e, 'ml');
