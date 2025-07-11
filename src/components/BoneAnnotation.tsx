@@ -34,11 +34,6 @@ interface AdjustmentState {
   x: number;
   y: number;
   rotation: number;
-  scale: number;
-  cropX: number;
-  cropY: number;
-  cropWidth: number;
-  cropHeight: number;
 }
 
 const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext, patientData }) => {
@@ -49,21 +44,17 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
   const [mlSaved, setMlSaved] = useState(false);
   const [adjustmentMode, setAdjustmentMode] = useState<'ap' | 'ml' | null>(null);
   const [apAdjustment, setApAdjustment] = useState<AdjustmentState>({ 
-    x: 0, y: 0, rotation: 0, scale: 1, cropX: 0, cropY: 0, cropWidth: 100, cropHeight: 100 
+    x: 0, y: 0, rotation: 0
   });
   const [mlAdjustment, setMlAdjustment] = useState<AdjustmentState>({ 
-    x: 0, y: 0, rotation: 0, scale: 1, cropX: 0, cropY: 0, cropWidth: 100, cropHeight: 100 
+    x: 0, y: 0, rotation: 0
   });
   const [adjustmentValue, setAdjustmentValue] = useState(2);
   const [rotationValue, setRotationValue] = useState(5);
-  const [scaleValue, setScaleValue] = useState(0.1);
-  const [adjustmentType, setAdjustmentType] = useState<'transition' | 'rotation' | 'scale' | 'crop'>('transition');
+  const [adjustmentType, setAdjustmentType] = useState<'transition' | 'rotation'>('transition');
   const [apAdjustmentSaved, setApAdjustmentSaved] = useState(false);
   const [mlAdjustmentSaved, setMlAdjustmentSaved] = useState(false);
   const [drawingMode, setDrawingMode] = useState<'none' | 'ap' | 'ml'>('none');
-  const [cropMode, setCropMode] = useState<'none' | 'ap' | 'ml'>('none');
-  const [cropStart, setCropStart] = useState<{ x: number; y: number } | null>(null);
-  const [cropEnd, setCropEnd] = useState<{ x: number; y: number } | null>(null);
   const [segmentAdded, setSegmentAdded] = useState(false);
   const [hoverPoint, setHoverPoint] = useState<Point | null>(null);
   const [currentApRotation, setCurrentApRotation] = useState(0);
@@ -261,61 +252,6 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
     setAdjustment(prev => ({ ...prev, rotation: prev.rotation + degrees }));
   };
 
-  const handleScale = (direction: 'up' | 'down') => {
-    if (!adjustmentMode) return;
-
-    const value = scaleValue;
-    const adjustment = adjustmentMode === 'ap' ? apAdjustment : mlAdjustment;
-    const setAdjustment = adjustmentMode === 'ap' ? setApAdjustment : setMlAdjustment;
-
-    if (direction === 'up') {
-      setAdjustment({ ...adjustment, scale: Math.min(adjustment.scale + value, 3) });
-    } else {
-      setAdjustment({ ...adjustment, scale: Math.max(adjustment.scale - value, 0.1) });
-    }
-  };
-
-  const handleCropStart = (imageType: 'ap' | 'ml') => {
-    setCropMode(imageType);
-    setCropStart(null);
-    setCropEnd(null);
-  };
-
-  const handleCropImageClick = useCallback((event: React.MouseEvent, imageType: 'ap' | 'ml') => {
-    if (cropMode !== imageType) return;
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
-
-    if (!cropStart) {
-      setCropStart({ x, y });
-    } else {
-      setCropEnd({ x, y });
-      
-      // Calculate crop area
-      const cropX = Math.min(cropStart.x, x);
-      const cropY = Math.min(cropStart.y, y);
-      const cropWidth = Math.abs(x - cropStart.x);
-      const cropHeight = Math.abs(y - cropStart.y);
-
-      const adjustment = imageType === 'ap' ? apAdjustment : mlAdjustment;
-      const setAdjustment = imageType === 'ap' ? setApAdjustment : setMlAdjustment;
-
-      setAdjustment({ 
-        ...adjustment, 
-        cropX, 
-        cropY, 
-        cropWidth, 
-        cropHeight 
-      });
-
-      setCropMode('none');
-      setCropStart(null);
-      setCropEnd(null);
-    }
-  }, [cropMode, cropStart, apAdjustment, mlAdjustment]);
-
   const handleSaveAdjustment = () => {
     if (adjustmentMode === 'ap') {
       setApAdjustmentSaved(true);
@@ -325,19 +261,17 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
     setAdjustmentMode(null);
     setCurrentMode('initial');
     setAdjustmentType('transition');
-    setCropMode('none');
   };
 
   const handleCancelAdjustment = () => {
     if (adjustmentMode === 'ap') {
-      setApAdjustment({ x: 0, y: 0, rotation: 0, scale: 1, cropX: 0, cropY: 0, cropWidth: 100, cropHeight: 100 });
+      setApAdjustment({ x: 0, y: 0, rotation: 0 });
     } else if (adjustmentMode === 'ml') {
-      setMlAdjustment({ x: 0, y: 0, rotation: 0, scale: 1, cropX: 0, cropY: 0, cropWidth: 100, cropHeight: 100 });
+      setMlAdjustment({ x: 0, y: 0, rotation: 0 });
     }
     setAdjustmentMode(null);
     setCurrentMode('initial');
     setAdjustmentType('transition');
-    setCropMode('none');
   };
 
   const handleFinalSave = () => {
@@ -397,7 +331,6 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
               transform: `
                 translate(${adjustment.x}px, ${adjustment.y}px)
                 rotate(${adjustment.rotation}deg)
-                scale(${adjustment.scale})
               `,
               transformOrigin: `${center.x}% ${center.y}%`,
               transition: 'transform 0.2s ease',
@@ -456,38 +389,6 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
     );
   };
 
-  const renderCropOverlay = (imageType: 'ap' | 'ml') => {
-    if (cropMode !== imageType) return null;
-
-    return (
-      <div className="absolute inset-0 pointer-events-none">
-        {/* Crop selection area */}
-        {cropStart && cropEnd && (
-          <div
-            className="absolute border-2 border-yellow-400 bg-yellow-400/20"
-            style={{
-              left: `${Math.min(cropStart.x, cropEnd.x)}%`,
-              top: `${Math.min(cropStart.y, cropEnd.y)}%`,
-              width: `${Math.abs(cropEnd.x - cropStart.x)}%`,
-              height: `${Math.abs(cropEnd.y - cropStart.y)}%`,
-            }}
-          />
-        )}
-        
-        {/* Crop start point */}
-        {cropStart && !cropEnd && (
-          <div
-            className="absolute w-2 h-2 bg-yellow-400 rounded-full transform -translate-x-1/2 -translate-y-1/2"
-            style={{
-              left: `${cropStart.x}%`,
-              top: `${cropStart.y}%`,
-            }}
-          />
-        )}
-      </div>
-    );
-  };
-
   const renderAdjustmentControls = () => {
     if (!adjustmentMode) return null;
 
@@ -515,26 +416,6 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
               }`}
             >
               Rotation
-            </button>
-            <button
-              onClick={() => setAdjustmentType('scale')}
-              className={`px-3 py-1 rounded text-sm transition-colors ${
-                adjustmentType === 'scale' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-white/20 text-white hover:bg-white/30'
-              }`}
-            >
-              Scale
-            </button>
-            <button
-              onClick={() => setAdjustmentType('crop')}
-              className={`px-3 py-1 rounded text-sm transition-colors ${
-                adjustmentType === 'crop' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-white/20 text-white hover:bg-white/30'
-              }`}
-            >
-              Crop
             </button>
           </div>
 
@@ -630,51 +511,6 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                 >
                   +180°
                 </button>
-              </div>
-            </>
-          ) : adjustmentType === 'scale' ? (
-            <>
-              {/* Scale Controls */}
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => handleScale('down')}
-                  className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-                >
-                  <span className="text-white text-sm">-</span>
-                </button>
-                <input
-                  type="number"
-                  value={scaleValue}
-                  onChange={(e) => setScaleValue(Number(e.target.value))}
-                  className="w-16 px-2 py-1 bg-white text-black rounded text-center text-sm"
-                  min="0.1"
-                  max="1"
-                  step="0.1"
-                />
-                <button
-                  onClick={() => handleScale('up')}
-                  className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-                >
-                  <span className="text-white text-sm">+</span>
-                </button>
-              </div>
-              <div className="text-white text-xs text-center">
-                Current Scale: {adjustmentMode === 'ap' ? apAdjustment.scale.toFixed(1) : mlAdjustment.scale.toFixed(1)}x
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Crop Controls */}
-              <div className="flex flex-col items-center space-y-2">
-                <button
-                  onClick={() => handleCropStart(adjustmentMode as 'ap' | 'ml')}
-                  className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors text-sm"
-                >
-                  Start Crop Selection
-                </button>
-                <div className="text-white text-xs text-center">
-                  Click to start crop area, then click again to finish
-                </div>
               </div>
             </>
           )}
@@ -964,12 +800,6 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                       {adjustmentType === 'rotation' && (
                         <p>Use the rotation controls to rotate the polygon. Adjust the rotation value and click the rotation buttons.</p>
                       )}
-                      {adjustmentType === 'scale' && (
-                        <p>Use the scale controls to resize the polygon. Click + to increase size or - to decrease size.</p>
-                      )}
-                      {adjustmentType === 'crop' && (
-                        <p>Click "Start Crop Selection", then click two points on the image to define the crop area.</p>
-                      )}
                     </>
                   )}
                   {currentMode === 'initial' && apAdjustmentSaved && mlAdjustmentSaved && (
@@ -980,9 +810,6 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                   )}
                   {currentMode === 'initial' && drawingMode === 'none' && segmentAdded && (!apSaved || !mlSaved) && (
                     <p>Click "Draw AP" or "Draw ML" to create polygon annotations on the respective X-ray images.</p>
-                  )}
-                  {cropMode !== 'none' && (
-                    <p>Crop mode active. Click on the {cropMode.toUpperCase()} image to start selecting the crop area.</p>
                   )}
                 </div>
               </div>
@@ -999,11 +826,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                   drawingMode === 'ap' || cropMode === 'ap' ? 'cursor-crosshair' : 'cursor-default'
                 }`}
                 onClick={(e) => {
-                  if (cropMode === 'ap') {
-                    handleCropImageClick(e, 'ap');
-                  } else {
-                    handleImageClick(e, 'ap');
-                  }
+                  handleImageClick(e, 'ap');
                 }}
                 onMouseMove={(e) => handleMouseMove(e, 'ap')}
                 style={{
@@ -1016,18 +839,12 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                   transform: `rotate(${currentApRotation}deg)`,
                   width: '100%',
                   height: '100%',
-                  clipPath: apAdjustment.cropWidth < 100 || apAdjustment.cropHeight < 100 
-                    ? `inset(${apAdjustment.cropY}% ${100 - apAdjustment.cropX - apAdjustment.cropWidth}% ${100 - apAdjustment.cropY - apAdjustment.cropHeight}% ${apAdjustment.cropX}%)`
-                    : 'none',
                 }}
               >
                 {/* Background image is rendered via the style */}
                 
                 {/* Render AP polygon with mask and segment */}
                 {renderPolygon(apPolygon, apAdjustment, apCenter, 'ap')}
-                
-                {/* Render crop overlay */}
-                {renderCropOverlay('ap')}
                 
                 {/* Adjustment controls for AP */}
                 {adjustmentMode === 'ap' && renderAdjustmentControls()}
@@ -1042,11 +859,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                   drawingMode === 'ml' || cropMode === 'ml' ? 'cursor-crosshair' : 'cursor-default'
                 }`}
                 onClick={(e) => {
-                  if (cropMode === 'ml') {
-                    handleCropImageClick(e, 'ml');
-                  } else {
-                    handleImageClick(e, 'ml');
-                  }
+                  handleImageClick(e, 'ml');
                 }}
                 onMouseMove={(e) => handleMouseMove(e, 'ml')}
                 style={{
@@ -1057,9 +870,6 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                   backgroundRepeat: 'no-repeat',
                   backgroundPosition: 'center',
                   transform: `rotate(${currentLatRotation}deg)`,
-                  clipPath: mlAdjustment.cropWidth < 100 || mlAdjustment.cropHeight < 100 
-                    ? `inset(${mlAdjustment.cropY}% ${100 - mlAdjustment.cropX - mlAdjustment.cropWidth}% ${100 - mlAdjustment.cropY - mlAdjustment.cropHeight}% ${mlAdjustment.cropX}%)`
-                    : 'none',
                   width: '100%',
                   height: '100%'
                 }}
@@ -1068,9 +878,6 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                 
                 {/* Render ML polygon with mask and segment */}
                 {renderPolygon(mlPolygon, mlAdjustment, mlCenter, 'ml')}
-                
-                {/* Render crop overlay */}
-                {renderCropOverlay('ml')}
                 
                 {/* Adjustment controls for ML */}
                 {adjustmentMode === 'ml' && renderAdjustmentControls()}
