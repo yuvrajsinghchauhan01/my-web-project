@@ -132,18 +132,14 @@ function App() {
     <div className="min-h-screen relative overflow-hidden">
       {/* Background Image */}
       <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: 'url("https://images.pexels.com/photos/3844581/pexels-photo-3844581.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop")',
-        }}
+        className="absolute inset-0 bg-cover bg-center bg-[url('src/images/sign_in_background.png')] bg-no-repeat"
       />
-      
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 via-slate-900/60 to-slate-900/40" />
       
       {/* Content */}
       <div className="relative z-10 min-h-screen flex">
-        <Logo />
+        <div>
+          <img src={"src/images/meril.png"} alt="Logo" className="w-20 h-22 fixed top-8 left-8 z-10" />
+        </div>
         
         {/* Left Side - Hero Text */}
         <Hero />

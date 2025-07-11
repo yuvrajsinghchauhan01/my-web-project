@@ -110,7 +110,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ activeTab, onTabChange, onLogin }
 
             <button
               type="submit"
-              className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-2xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
+              className="w-full py-4 bg-gradient-to-r from-[#4D648D] to-[#273655] hover:bg-blue-700 text-white font-medium rounded-2xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
             >
               Login
             </button>
