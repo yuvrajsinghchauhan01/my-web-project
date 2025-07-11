@@ -513,7 +513,7 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
                 </button>
               </div>
             </>
-          )}
+          ) : null}
 
           <div className="flex space-x-2 mt-4">
             <button
