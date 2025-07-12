@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Home, User, ArrowLeft, RotateCcw, Save } from 'lucide-react';
 
 interface CalibrationAnnotationProps {
@@ -51,35 +51,140 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
   });
   const [isDraggingArrow, setIsDraggingArrow] = useState<'ap' | 'lat' | null>(null);
   // REMOVED: markersFixed state - no longer needed
+  // Add state for detected diameters
+  const [apDetectedDiameter, setApDetectedDiameter] = useState<string>('');
+  const [latDetectedDiameter, setLatDetectedDiameter] = useState<string>('');
+  // Add state for bounding boxes
+  const [apBoundingBox, setApBoundingBox] = useState<[number, number, number, number] | null>(null);
+  const [latBoundingBox, setLatBoundingBox] = useState<[number, number, number, number] | null>(null);
+  const [apImageSize, setApImageSize] = useState({ width: 1, height: 1 });
+  const [latImageSize, setLatImageSize] = useState({ width: 1, height: 1 });
+  const [apBackendImageSize, setApBackendImageSize] = useState({ width: 1, height: 1 });
+  const [latBackendImageSize, setLatBackendImageSize] = useState({ width: 1, height: 1 });
 
   const apImageRef = useRef<HTMLDivElement>(null);
   const latImageRef = useRef<HTMLDivElement>(null);
 
-  const handleAutoDetectMarker = () => {
-    // Simulate auto-detection but keep position adjustable
-    setApMarker({ 
-      x: 45, 
-      y: 60, 
-      diameter: 25, 
-      rotation: 37, 
-      arrowRotation: -15,
-      isPositionSet: false // CHANGED: Keep position adjustable after auto-detect
-    });
-    setLatMarker({ 
-      x: 55, 
-      y: 65, 
-      diameter: 25, 
-      rotation: -4, 
-      arrowRotation: 90,
-      isPositionSet: false // CHANGED: Keep position adjustable after auto-detect
-    });
-    setCurrentStep('detected');
-    
-    // Show rotation tooltips
-    setShowRotationTooltip({ ap: true, lat: true });
-    setTimeout(() => {
-      setShowRotationTooltip({ ap: false, lat: false });
-    }, 3000);
+  useEffect(() => {
+    if (apImageRef.current) {
+      const rect = apImageRef.current.getBoundingClientRect();
+      setApImageSize({ width: rect.width, height: rect.height });
+    }
+    if (latImageRef.current) {
+      const rect = latImageRef.current.getBoundingClientRect();
+      setLatImageSize({ width: rect.width, height: rect.height });
+    }
+  }, [uploadedImages.apXray, uploadedImages.latXray]);
+
+  const handleAutoDetectMarker = async () => {
+    try {
+      // Prepare the request data
+      const requestData = {
+        ap_image: uploadedImages.apXray,
+        lat_image: uploadedImages.latXray
+      };
+
+      // Call the backend API
+      const response = await fetch('http://localhost:8000/api/detect-circles/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const results = await response.json();
+
+      // Update markers and diameters based on API results
+      if (results.ap && !results.ap.error) {
+        const apResult = results.ap;
+        setApDetectedDiameter(String(apResult.diameter_mm));
+        setApBoundingBox(apResult.bbox);
+        setApBackendImageSize({ width: results.ap.image_width, height: results.ap.image_height });
+        // Convert pixel coordinates to percentage
+        const apImageElement = apImageRef.current;
+        if (apImageElement) {
+          const rect = apImageElement.getBoundingClientRect();
+          const x = (apResult.center_x / rect.width) * 100;
+          const y = (apResult.center_y / rect.height) * 100;
+          
+          setApMarker({ 
+            x, 
+            y, 
+            diameter: apResult.diameter_mm, 
+            rotation: 37, 
+            arrowRotation: -15,
+            isPositionSet: false
+          });
+        }
+      } else {
+        setApDetectedDiameter('');
+        setApBoundingBox(null);
+      }
+
+      if (results.lat && !results.lat.error) {
+        const latResult = results.lat;
+        setLatDetectedDiameter(String(latResult.diameter_mm));
+        setLatBoundingBox(latResult.bbox);
+        setLatBackendImageSize({ width: results.lat.image_width, height: results.lat.image_height });
+        // Convert pixel coordinates to percentage
+        const latImageElement = latImageRef.current;
+        if (latImageElement) {
+          const rect = latImageElement.getBoundingClientRect();
+          const x = (latResult.center_x / rect.width) * 100;
+          const y = (latResult.center_y / rect.height) * 100;
+          
+          setLatMarker({ 
+            x, 
+            y, 
+            diameter: latResult.diameter_mm, 
+            rotation: -4, 
+            arrowRotation: 90,
+            isPositionSet: false
+          });
+        }
+      } else {
+        setLatDetectedDiameter('');
+        setLatBoundingBox(null);
+      }
+
+      setCurrentStep('detected');
+      
+      // Show rotation tooltips
+      setShowRotationTooltip({ ap: true, lat: true });
+      setTimeout(() => {
+        setShowRotationTooltip({ ap: false, lat: false });
+      }, 3000);
+
+    } catch (error) {
+      console.error('Error detecting circles:', error);
+      // Fallback to original hardcoded values if API fails
+      setApMarker({ 
+        x: 45, 
+        y: 60, 
+        diameter: 25, 
+        rotation: 37, 
+        arrowRotation: -15,
+        isPositionSet: false
+      });
+      setLatMarker({ 
+        x: 55, 
+        y: 65, 
+        diameter: 25, 
+        rotation: -4, 
+        arrowRotation: 90,
+        isPositionSet: false
+      });
+      setApDetectedDiameter('');
+      setLatDetectedDiameter('');
+      setApBoundingBox(null);
+      setLatBoundingBox(null);
+      setCurrentStep('detected');
+    }
   };
 
   const handleImageClick = useCallback((event: React.MouseEvent, imageType: 'ap' | 'lat') => {
@@ -324,7 +429,13 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
                   </button>
                   <div className="flex items-center space-x-3">
                     <span className="text-sm">AP Market Diameter(mm):</span>
-                    <span className="px-3 py-1 bg-white text-gray-800 rounded-lg font-medium">25</span>
+                    <input
+                      className="px-3 py-1 bg-white text-gray-800 rounded-lg font-medium w-16 text-center"
+                      type="text"
+                      value={apDetectedDiameter}
+                      placeholder="-"
+                      readOnly
+                    />
                   </div>
                 </div>
 
@@ -338,7 +449,13 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
                   </button>
                   <div className="flex items-center space-x-3">
                     <span className="text-sm">LAT Market Diameter(mm):</span>
-                    <span className="px-3 py-1 bg-white text-gray-800 rounded-lg font-medium">25</span>
+                    <input
+                      className="px-3 py-1 bg-white text-gray-800 rounded-lg font-medium w-16 text-center"
+                      type="text"
+                      value={latDetectedDiameter}
+                      placeholder="-"
+                      readOnly
+                    />
                   </div>
                 </div>
 
@@ -401,6 +518,29 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
                 }}
               >
                 {currentStep !== 'initial' && renderMarker(apMarker, 'ap')}
+                {currentStep !== 'initial' && apBoundingBox && apBackendImageSize.width > 1 && apImageSize.width > 1 && (
+                  (() => {
+                    const scaleX = apImageSize.width / apBackendImageSize.width;
+                    const scaleY = apImageSize.height / apBackendImageSize.height;
+                    const left = apBoundingBox[0] * scaleX;
+                    const top = apBoundingBox[1] * scaleY;
+                    const width = (apBoundingBox[2] - apBoundingBox[0]) * scaleX;
+                    const height = (apBoundingBox[3] - apBoundingBox[1]) * scaleY;
+                    return (
+                      <div
+                        className="absolute border-2 border-yellow-400"
+                        style={{
+                          left: `${left}px`,
+                          top: `${top}px`,
+                          width: `${width}px`,
+                          height: `${height}px`,
+                          pointerEvents: 'none',
+                          zIndex: 20
+                        }}
+                      />
+                    );
+                  })()
+                )}
               </div>
             </div>
 
@@ -429,6 +569,29 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
                 }}
               >
                 {currentStep !== 'initial' && renderMarker(latMarker, 'lat')}
+                {currentStep !== 'initial' && latBoundingBox && latBackendImageSize.width > 1 && latImageSize.width > 1 && (
+                  (() => {
+                    const scaleX = latImageSize.width / latBackendImageSize.width;
+                    const scaleY = latImageSize.height / latBackendImageSize.height;
+                    const left = latBoundingBox[0] * scaleX;
+                    const top = latBoundingBox[1] * scaleY;
+                    const width = (latBoundingBox[2] - latBoundingBox[0]) * scaleX;
+                    const height = (latBoundingBox[3] - latBoundingBox[1]) * scaleY;
+                    return (
+                      <div
+                        className="absolute border-2 border-yellow-400"
+                        style={{
+                          left: `${left}px`,
+                          top: `${top}px`,
+                          width: `${width}px`,
+                          height: `${height}px`,
+                          pointerEvents: 'none',
+                          zIndex: 20
+                        }}
+                      />
+                    );
+                  })()
+                )}
               </div>
             </div>
           </div>
