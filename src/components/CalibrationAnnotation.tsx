@@ -11,7 +11,6 @@ interface CalibrationAnnotationProps {
     apXrayImage: string | null;
     latXrayImage: string | null;
   };
-  // onUpdateImages: (apImage: string | null, latImage: string | null) => void;
   onUpdateImages: (apImage: string | null, latImage: string | null, apRotation?: number, latRotation?: number) => void;
 }
 
@@ -21,7 +20,7 @@ interface MarkerData {
   diameter: number;
   rotation: number;
   arrowRotation: number;
-  isPositionSet: boolean; // NEW: Track if position is set
+  isPositionSet: boolean;
 }
 
 const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, onNext, patientData, onUpdateImages }) => {
@@ -31,7 +30,7 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
     diameter: 25, 
     rotation: 0, 
     arrowRotation: 0,
-    isPositionSet: false // NEW: Initially false
+    isPositionSet: false
   });
   const [latMarker, setLatMarker] = useState<MarkerData>({ 
     x: 50, 
@@ -39,7 +38,7 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
     diameter: 25, 
     rotation: 0, 
     arrowRotation: 0,
-    isPositionSet: false // NEW: Initially false
+    isPositionSet: false
   });
   const [apRotation, setApRotation] = useState(0);
   const [latRotation, setLatRotation] = useState(0);
@@ -50,7 +49,6 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
     latXray: patientData.latXrayImage
   });
   const [isDraggingArrow, setIsDraggingArrow] = useState<'ap' | 'lat' | null>(null);
-  // REMOVED: markersFixed state - no longer needed
 
   const apImageRef = useRef<HTMLDivElement>(null);
   const latImageRef = useRef<HTMLDivElement>(null);
@@ -63,7 +61,7 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
       diameter: 25, 
       rotation: 37, 
       arrowRotation: -15,
-      isPositionSet: false // CHANGED: Keep position adjustable after auto-detect
+      isPositionSet: false
     });
     setLatMarker({ 
       x: 55, 
@@ -71,7 +69,7 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
       diameter: 25, 
       rotation: -4, 
       arrowRotation: 90,
-      isPositionSet: false // CHANGED: Keep position adjustable after auto-detect
+      isPositionSet: false
     });
     setCurrentStep('detected');
     
@@ -376,59 +374,73 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
 
           {/* Right Columns - X-Ray Images */}
           <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* AP X-Ray */}
-            <div className="bg-black rounded-3xl overflow-hidden shadow-lg flex items-center justify-center relative">
-              <div
-                ref={apImageRef}
-                className={`aspect-[3/4] bg-black relative flex items-center justify-center h-[700px] ${
-                  !apMarker.isPositionSet && currentStep !== 'initial' ? 'cursor-crosshair' : 'cursor-default'
-                }`}
-                onClick={(e) => handleImageClick(e, 'ap')}
-                onMouseMove={(e) => handleArrowDrag(e, 'ap')}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-                style={{
-                  backgroundImage: uploadedImages.apXray 
-                    ? `url("${uploadedImages.apXray}")`
-                    : 'url("")',
-                  backgroundSize: 'contain',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'center',
-                  transform: currentStep === 'straightened' ? `rotate(${apRotation}deg)` : 'rotate(0deg)',
-                  transition: 'transform 0.5s ease-in-out',
-                  width: '100%',
-                  height: '100%'
-                }}
-              >
-                {currentStep !== 'initial' && renderMarker(apMarker, 'ap')}
+            {/* AP X-Ray - FIXED CONTAINER */}
+            <div className="bg-black rounded-3xl overflow-hidden shadow-lg relative">
+              <div className="w-full h-[700px] relative">
+                {/* Fixed Image Container - No transforms applied to this container */}
+                <div
+                  ref={apImageRef}
+                  className={`w-full h-full relative ${
+                    !apMarker.isPositionSet && currentStep !== 'initial' ? 'cursor-crosshair' : 'cursor-default'
+                  }`}
+                  onClick={(e) => handleImageClick(e, 'ap')}
+                  onMouseMove={(e) => handleArrowDrag(e, 'ap')}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                >
+                  {/* Background Image - Fixed positioning */}
+                  {uploadedImages.apXray && (
+                    <img
+                      src={uploadedImages.apXray}
+                      alt="AP X-Ray"
+                      className="w-full h-full object-contain"
+                      style={{
+                        transform: currentStep === 'straightened' ? `rotate(${apRotation}deg)` : 'rotate(0deg)',
+                        transition: 'transform 0.5s ease-in-out',
+                        transformOrigin: 'center center'
+                      }}
+                      draggable={false}
+                    />
+                  )}
+                  
+                  {/* Markers overlay - positioned absolutely over the fixed container */}
+                  {currentStep !== 'initial' && renderMarker(apMarker, 'ap')}
+                </div>
               </div>
             </div>
 
-            {/* LAT X-Ray */}
-            <div className="bg-black rounded-3xl overflow-hidden shadow-lg flex items-center justify-center relative">
-              <div
-                ref={latImageRef}
-                className={`aspect-[3/4] bg-black relative flex items-center justify-center ${
-                  !latMarker.isPositionSet && currentStep !== 'initial' ? 'cursor-crosshair' : 'cursor-default'
-                }`}
-                onClick={(e) => handleImageClick(e, 'lat')}
-                onMouseMove={(e) => handleArrowDrag(e, 'lat')}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-                style={{
-                  backgroundImage: uploadedImages.latXray
-                    ? `url("${uploadedImages.latXray}")`
-                    : 'url("")',
-                  backgroundSize: 'contain',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'center',
-                  transform: currentStep === 'straightened' ? `rotate(${latRotation}deg)` : 'rotate(0deg)',
-                  transition: 'transform 0.5s ease-in-out',
-                  width: '100%',
-                  height: '100%'
-                }}
-              >
-                {currentStep !== 'initial' && renderMarker(latMarker, 'lat')}
+            {/* LAT X-Ray - FIXED CONTAINER */}
+            <div className="bg-black rounded-3xl overflow-hidden shadow-lg relative">
+              <div className="w-full h-[700px] relative">
+                {/* Fixed Image Container - No transforms applied to this container */}
+                <div
+                  ref={latImageRef}
+                  className={`w-full h-full relative ${
+                    !latMarker.isPositionSet && currentStep !== 'initial' ? 'cursor-crosshair' : 'cursor-default'
+                  }`}
+                  onClick={(e) => handleImageClick(e, 'lat')}
+                  onMouseMove={(e) => handleArrowDrag(e, 'lat')}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                >
+                  {/* Background Image - Fixed positioning */}
+                  {uploadedImages.latXray && (
+                    <img
+                      src={uploadedImages.latXray}
+                      alt="LAT X-Ray"
+                      className="w-full h-full object-contain"
+                      style={{
+                        transform: currentStep === 'straightened' ? `rotate(${latRotation}deg)` : 'rotate(0deg)',
+                        transition: 'transform 0.5s ease-in-out',
+                        transformOrigin: 'center center'
+                      }}
+                      draggable={false}
+                    />
+                  )}
+                  
+                  {/* Markers overlay - positioned absolutely over the fixed container */}
+                  {currentStep !== 'initial' && renderMarker(latMarker, 'lat')}
+                </div>
               </div>
             </div>
           </div>
