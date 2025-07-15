@@ -11,7 +11,7 @@ import ImplantTemplating from './components/ImplantTemplating';
 function App() {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'newPatient' | 'calibration' | 'boneAnnotation' | 'implantTemplating'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'newPatient' | 'calibration' | 'boneAnnotation' | 'implantTemplating'>('calibration');
   const [patientData, setPatientData] = useState({
     patientId: '',
     firstName: '',
@@ -88,7 +88,7 @@ function App() {
     setCurrentView('dashboard');
   };
 
-  if (isLoggedIn) {
+  // if (isLoggedIn) {
     if (currentView === 'implantTemplating') {
       return (
         <ImplantTemplating 
@@ -125,8 +125,8 @@ function App() {
       return <NewPatientForm onBack={handleBackToDashboard} onSave={handleSavePatient} />;
     }
     
-    return <Dashboard onNewCase={handleNewCase} />;
-  }
+  //   return <Dashboard onNewCase={handleNewCase} />;
+  // }
 
   return (
     <div className="min-h-screen relative overflow-hidden">

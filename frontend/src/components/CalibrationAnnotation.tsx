@@ -494,10 +494,10 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
           {/* Right Columns - X-Ray Images */}
           <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* AP X-Ray */}
-            <div className="bg-black rounded-3xl overflow-hidden shadow-lg flex items-center justify-center relative">
+            <div className="bg-gray-500 rounded-3xl overflow-hidden shadow-lg flex items-center justify-center relative">
               <div
                 ref={apImageRef}
-                className={`aspect-[3/4] bg-black relative flex items-center justify-center h-[700px] ${
+                className={`relative aspect-[3/4] bg-gray-500 flex items-center justify-center h-[700px]${
                   !apMarker.isPositionSet && currentStep !== 'initial' ? 'cursor-crosshair' : 'cursor-default'
                 }`}
                 onClick={(e) => handleImageClick(e, 'ap')}
@@ -505,50 +505,54 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
                 style={{
-                  backgroundImage: uploadedImages.apXray 
-                    ? `url("${uploadedImages.apXray}")`
-                    : 'url("")',
-                  backgroundSize: 'contain',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'center',
                   transform: currentStep === 'straightened' ? `rotate(${apRotation}deg)` : 'rotate(0deg)',
                   transition: 'transform 0.5s ease-in-out',
-                  width: '100%',
-                  height: '100%'
                 }}
               >
-                {currentStep !== 'initial' && renderMarker(apMarker, 'ap')}
-                {currentStep !== 'initial' && apBoundingBox && apBackendImageSize.width > 1 && apImageSize.width > 1 && (
-                  (() => {
-                    const scaleX = apImageSize.width / apBackendImageSize.width;
-                    const scaleY = apImageSize.height / apBackendImageSize.height;
-                    const left = apBoundingBox[0] * scaleX;
-                    const top = apBoundingBox[1] * scaleY;
-                    const width = (apBoundingBox[2] - apBoundingBox[0]) * scaleX;
-                    const height = (apBoundingBox[3] - apBoundingBox[1]) * scaleY;
-                    return (
-                      <div
-                        className="absolute border-2 border-yellow-400"
-                        style={{
-                          left: `${left}px`,
-                          top: `${top}px`,
-                          width: `${width}px`,
-                          height: `${height}px`,
-                          pointerEvents: 'none',
-                          zIndex: 20
-                        }}
-                      />
-                    );
-                  })()
-                )}
+                <div className='relative inline-block'>
+                  {uploadedImages.apXray && (
+                    <img
+                      src={uploadedImages.apXray}
+                      alt="AP X-ray image"
+                      className="max-w-full max-h-full object-contain"
+                      style={{
+                        pointerEvents: 'none', // Prevent image from interfering with click events
+                      }}
+                    />
+                  )}
+                  {currentStep !== 'initial' && renderMarker(apMarker, 'ap')}
+                  {currentStep !== 'initial' && apBoundingBox && apBackendImageSize.width > 1 && apImageSize.width > 1 && (
+                    (() => {
+                      // Simplified scaling - img dimensions are already display dimensions
+                      const left = apBoundingBox[0] * (apImageSize.width / apBackendImageSize.width);
+                      const top = apBoundingBox[1] * (apImageSize.height / apBackendImageSize.height);
+                      const width = (apBoundingBox[2] - apBoundingBox[0]) * (apImageSize.width / apBackendImageSize.width);
+                      const height = (apBoundingBox[3] - apBoundingBox[1]) * (apImageSize.height / apBackendImageSize.height);
+                      
+                      return (
+                        <div
+                          className="absolute border-2 border-yellow-400"
+                          style={{
+                            left: `${left}px`,
+                            top: `${top}px`,
+                            width: `${width}px`,
+                            height: `${height}px`,
+                            pointerEvents: 'none',
+                            zIndex: 20
+                          }}
+                        />
+                      );
+                    })()
+                  )}
+                </div>
               </div>
             </div>
 
             {/* LAT X-Ray */}
-            <div className="bg-black rounded-3xl overflow-hidden shadow-lg flex items-center justify-center relative">
+            <div className="bg-gray-500 rounded-3xl overflow-hidden shadow-lg flex items-center justify-center relative">
               <div
                 ref={latImageRef}
-                className={`aspect-[3/4] bg-black relative flex items-center justify-center ${
+                className={`aspect-[3/4] bg-gray-500 relative flex items-center justify-center h-fit${
                   !latMarker.isPositionSet && currentStep !== 'initial' ? 'cursor-crosshair' : 'cursor-default'
                 }`}
                 onClick={(e) => handleImageClick(e, 'lat')}
@@ -556,42 +560,46 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
                 style={{
-                  backgroundImage: uploadedImages.latXray
-                    ? `url("${uploadedImages.latXray}")`
-                    : 'url("")',
-                  backgroundSize: 'contain',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'center',
                   transform: currentStep === 'straightened' ? `rotate(${latRotation}deg)` : 'rotate(0deg)',
                   transition: 'transform 0.5s ease-in-out',
-                  width: '100%',
-                  height: '100%'
                 }}
               >
-                {currentStep !== 'initial' && renderMarker(latMarker, 'lat')}
-                {currentStep !== 'initial' && latBoundingBox && latBackendImageSize.width > 1 && latImageSize.width > 1 && (
-                  (() => {
-                    const scaleX = latImageSize.width / latBackendImageSize.width;
-                    const scaleY = latImageSize.height / latBackendImageSize.height;
-                    const left = latBoundingBox[0] * scaleX;
-                    const top = latBoundingBox[1] * scaleY;
-                    const width = (latBoundingBox[2] - latBoundingBox[0]) * scaleX;
-                    const height = (latBoundingBox[3] - latBoundingBox[1]) * scaleY;
-                    return (
-                      <div
-                        className="absolute border-2 border-yellow-400"
-                        style={{
-                          left: `${left}px`,
-                          top: `${top}px`,
-                          width: `${width}px`,
-                          height: `${height}px`,
-                          pointerEvents: 'none',
-                          zIndex: 20
-                        }}
-                      />
-                    );
-                  })()
-                )}
+                <div className='relative inline-block'>
+                  {uploadedImages.latXray && (
+                    <img
+                      src={uploadedImages.latXray}
+                      alt="AP X-ray image"
+                      className="max-w-full max-h-full object-contain"
+                      style={{
+                        pointerEvents: 'none', // Prevent image from interfering with click events
+                      }}
+                    />
+                  )}
+                  {currentStep !== 'initial' && renderMarker(latMarker, 'lat')}
+                  {currentStep !== 'initial' && latBoundingBox && latBackendImageSize.width > 1 && latImageSize.width > 1 && (
+                    (() => {
+                      const scaleX = latImageSize.width / latBackendImageSize.width;
+                      const scaleY = latImageSize.height / latBackendImageSize.height;
+                      const left = latBoundingBox[0] * scaleX;
+                      const top = latBoundingBox[1] * scaleY;
+                      const width = (latBoundingBox[2] - latBoundingBox[0]) * scaleX;
+                      const height = (latBoundingBox[3] - latBoundingBox[1]) * scaleY;
+                      return (
+                        <div
+                          className="absolute border-2 border-yellow-400"
+                          style={{
+                            left: `${left}px`,
+                            top: `${top}px`,
+                            width: `${width}px`,
+                            height: `${height}px`,
+                            pointerEvents: 'none',
+                            zIndex: 20
+                          }}
+                        />
+                      );
+                    })()
+                  )}
+                </div>
               </div>
             </div>
           </div>
