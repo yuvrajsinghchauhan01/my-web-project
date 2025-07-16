@@ -50,8 +50,26 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
   });
   const [isDraggingArrow, setIsDraggingArrow] = useState<'ap' | 'lat' | null>(null);
 
+  // Add state to track actual displayed image dimensions
+  const [apDisplayedImageSize, setApDisplayedImageSize] = useState({ width: 1, height: 1 });
+  const [latDisplayedImageSize, setLatDisplayedImageSize] = useState({ width: 1, height: 1 });
+
   const apImageRef = useRef<HTMLDivElement>(null);
   const latImageRef = useRef<HTMLDivElement>(null);
+  const apImgRef = useRef<HTMLImageElement>(null);
+  const latImgRef = useRef<HTMLImageElement>(null);
+
+  // Function to get actual displayed image dimensions
+  const updateImageDimensions = () => {
+    if (apImgRef.current) {
+      const rect = apImgRef.current.getBoundingClientRect();
+      setApDisplayedImageSize({ width: rect.width, height: rect.height });
+    }
+    if (latImgRef.current) {
+      const rect = latImgRef.current.getBoundingClientRect();
+      setLatDisplayedImageSize({ width: rect.width, height: rect.height });
+    }
+  };
 
   const handleAutoDetectMarker = () => {
     // Simulate auto-detection but keep position adjustable
@@ -72,6 +90,9 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
       isPositionSet: false
     });
     setCurrentStep('detected');
+    
+    // Update image dimensions after detection
+    setTimeout(updateImageDimensions, 200);
     
     // Show rotation tooltips
     setShowRotationTooltip({ ap: true, lat: true });
@@ -391,6 +412,7 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
                   {/* Background Image - Fixed positioning */}
                   {uploadedImages.apXray && (
                     <img
+                      ref={apImgRef}
                       src={uploadedImages.apXray}
                       alt="AP X-Ray"
                       className="w-full h-full object-contain"
@@ -399,6 +421,7 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
                         transition: 'transform 0.5s ease-in-out',
                         transformOrigin: 'center center'
                       }}
+                      onLoad={updateImageDimensions}
                       draggable={false}
                     />
                   )}
@@ -426,6 +449,7 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
                   {/* Background Image - Fixed positioning */}
                   {uploadedImages.latXray && (
                     <img
+                      ref={latImgRef}
                       src={uploadedImages.latXray}
                       alt="LAT X-Ray"
                       className="w-full h-full object-contain"
@@ -434,6 +458,7 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
                         transition: 'transform 0.5s ease-in-out',
                         transformOrigin: 'center center'
                       }}
+                      onLoad={updateImageDimensions}
                       draggable={false}
                     />
                   )}
