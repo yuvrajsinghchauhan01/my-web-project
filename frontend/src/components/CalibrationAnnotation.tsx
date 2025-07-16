@@ -497,7 +497,7 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
             <div className="bg-gray-500 rounded-3xl overflow-hidden shadow-lg flex items-center justify-center relative">
               <div
                 ref={apImageRef}
-                className={`relative aspect-[3/4] bg-gray-500 flex items-center justify-center h-[700px]${
+                className={`relative bg-gray-500 flex items-center justify-center ${
                   !apMarker.isPositionSet && currentStep !== 'initial' ? 'cursor-crosshair' : 'cursor-default'
                 }`}
                 onClick={(e) => handleImageClick(e, 'ap')}
@@ -524,23 +524,51 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
                   {currentStep !== 'initial' && apBoundingBox && apBackendImageSize.width > 1 && apImageSize.width > 1 && (
                     (() => {
                       // Simplified scaling - img dimensions are already display dimensions
+                      const scaleX = apImageSize.width / apBackendImageSize.width;
+                      const scaleY = apImageSize.height / apBackendImageSize.height;
                       const left = apBoundingBox[0] * (apImageSize.width / apBackendImageSize.width);
                       const top = apBoundingBox[1] * (apImageSize.height / apBackendImageSize.height);
                       const width = (apBoundingBox[2] - apBoundingBox[0]) * (apImageSize.width / apBackendImageSize.width);
                       const height = (apBoundingBox[3] - apBoundingBox[1]) * (apImageSize.height / apBackendImageSize.height);
-                      
+                      console.log({
+                        originalBox: apBoundingBox,
+                        backendSize: apBackendImageSize,
+                        displaySize: apImageSize,
+                        scales: { scaleX, scaleY },
+                        finalPosition: { left, top, width, height }
+                      });
                       return (
-                        <div
-                          className="absolute border-2 border-yellow-400"
-                          style={{
-                            left: `${left}px`,
-                            top: `${top}px`,
-                            width: `${width}px`,
-                            height: `${height}px`,
-                            pointerEvents: 'none',
-                            zIndex: 20
-                          }}
-                        />
+                        <>
+                          <div
+                            className="absolute border-2 border-yellow-400"
+                            style={{
+                              left: `${left}px`,
+                              top: `${top}px`,
+                              width: `${width}px`,
+                              height: `${height}px`,
+                              pointerEvents: 'none',
+                              zIndex: 20
+                            }}
+                          />
+                          {/* <div className="absolute top-0 left-0 bg-black bg-opacity-75 text-white p-2 text-xs">
+                            Original: {apBackendImageSize.width}×{apBackendImageSize.height}<br/>
+                            Displayed: {apImageSize.width}×{apImageSize.height}<br/>
+                            Scale: {scaleX.toFixed(3)}×{scaleY.toFixed(3)}<br/>
+                            Box: [{apBoundingBox.join(', ')}]<br/>
+                            Scaled: {left.toFixed(1)}, {top.toFixed(1)}, {width.toFixed(1)}×{height.toFixed(1)}
+                          </div> */}
+                         <div className="absolute top-0 left-0 bg-black bg-opacity-90 text-white p-2 text-xs max-w-xs">
+  <div>Original: {apBackendImageSize.width}×{apBackendImageSize.height}</div>
+  <div>Displayed: {apImageSize.width.toFixed(1)}×{apImageSize.height.toFixed(1)}</div>
+  <div>Backend Aspect: {(apBackendImageSize.width/apBackendImageSize.height).toFixed(3)}</div>
+  <div>Display Aspect: {(apImageSize.width/apImageSize.height).toFixed(3)}</div>
+  <div>Scale: {scaleX.toFixed(3)}×{scaleY.toFixed(3)}</div>
+  <div>Box: [{apBoundingBox.join(', ')}]</div>
+  <div>Scaled: {left.toFixed(1)}, {top.toFixed(1)}</div>
+  <div>Box Center: {((apBoundingBox[0] + apBoundingBox[2])/2).toFixed(1)}, {((apBoundingBox[1] + apBoundingBox[3])/2).toFixed(1)}</div>
+  <div>Scale Diff: {Math.abs(scaleX - scaleY).toFixed(4)}</div>
+</div>
+                        </>
                       );
                     })()
                   )}
@@ -552,7 +580,7 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
             <div className="bg-gray-500 rounded-3xl overflow-hidden shadow-lg flex items-center justify-center relative">
               <div
                 ref={latImageRef}
-                className={`aspect-[3/4] bg-gray-500 relative flex items-center justify-center h-fit${
+                className={`aspect-[3/4] bg-gray-500 relative flex items-center justify-center ${
                   !latMarker.isPositionSet && currentStep !== 'initial' ? 'cursor-crosshair' : 'cursor-default'
                 }`}
                 onClick={(e) => handleImageClick(e, 'lat')}
