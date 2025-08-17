@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Home, User, ArrowLeft, RotateCcw, Save } from 'lucide-react';
+import { captureImageWithTransforms } from '../utils/imageCapture';
 
 interface CalibrationAnnotationProps {
   onBack: () => void;
@@ -157,8 +158,40 @@ const CalibrationAnnotation: React.FC<CalibrationAnnotationProps> = ({ onBack, o
     setApRotation(apStraightenRotation);
     setLatRotation(latStraightenRotation);
     
-    // Pass the rotation values along with the images to the next component
-    onUpdateImages(uploadedImages.apXray, uploadedImages.latXray, apStraightenRotation, latStraightenRotation);
+    // Capture the rotated images and pass them forward
+    captureRotatedImages(apStraightenRotation, latStraightenRotation);
+  };
+
+  const captureRotatedImages = async (apRot: number, latRot: number) => {
+    try {
+      let capturedApImage = uploadedImages.apXray;
+      let capturedLatImage = uploadedImages.latXray;
+
+      // Capture AP image with rotation if it exists
+      if (uploadedImages.apXray && apRot !== 0) {
+        capturedApImage = await captureImageWithTransforms(
+          uploadedImages.apXray,
+          { rotation: apRot },
+          { width: 800, height: 1000 }
+        );
+      }
+
+      // Capture LAT image with rotation if it exists
+      if (uploadedImages.latXray && latRot !== 0) {
+        capturedLatImage = await captureImageWithTransforms(
+          uploadedImages.latXray,
+          { rotation: latRot },
+          { width: 800, height: 1000 }
+        );
+      }
+
+      // Pass the captured images (now with rotations baked in)
+      onUpdateImages(capturedApImage, capturedLatImage, 0, 0); // Reset rotations since they're now baked in
+    } catch (error) {
+      console.error('Failed to capture rotated images:', error);
+      // Fallback to original approach
+      onUpdateImages(uploadedImages.apXray, uploadedImages.latXray, apRot, latRot);
+    }
   };
 
   const handleImageUpload = (type: 'ap' | 'lat') => {
