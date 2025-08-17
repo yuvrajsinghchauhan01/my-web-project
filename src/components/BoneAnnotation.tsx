@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Home, User, ArrowLeft, ArrowUp, ArrowDown, ArrowRight, RotateCcw, RotateCw, X } from 'lucide-react';
+import { captureElementAsImage } from '../utils/imageCapture';
 
 interface BoneAnnotationProps {
   onBack: () => void;
@@ -276,17 +277,65 @@ const BoneAnnotation: React.FC<BoneAnnotationProps> = ({ onBack, onSave, onNext,
   };
 
   const handleFinalSave = () => {
-    const boneAnnotationData = {
-      apPolygon,
-      latPolygon: mlPolygon,
-      apAdjustment,
-      latAdjustment: mlAdjustment
-    };
-    
-    if (apAdjustmentSaved && mlAdjustmentSaved) {
-      onNext(boneAnnotationData);
-    } else {
-      onSave(boneAnnotationData);
+    // Capture the final rendered images with all transformations
+    captureFinalImages();
+  };
+
+  const captureFinalImages = async () => {
+    try {
+      let finalApImage = patientData.apXrayImage;
+      let finalLatImage = patientData.latXrayImage;
+
+      // Capture AP image with all transformations if polygon exists
+      if (apPolygon.isComplete && apImageRef.current) {
+        finalApImage = await captureElementAsImage(apImageRef.current, {
+          width: 800,
+          height: 1000,
+          format: 'png'
+        });
+      }
+
+      // Capture LAT image with all transformations if polygon exists
+      if (mlPolygon.isComplete && mlImageRef.current) {
+        finalLatImage = await captureElementAsImage(mlImageRef.current, {
+          width: 800,
+          height: 1000,
+          format: 'png'
+        });
+      }
+
+      const boneAnnotationData = {
+        apXrayImage: finalApImage,
+        latXrayImage: finalLatImage,
+        // Keep metadata for reference but images now have transformations baked in
+        apPolygon,
+        latPolygon: mlPolygon,
+        apAdjustment: { x: 0, y: 0, rotation: 0, scale: 1 }, // Reset since baked in
+        latAdjustment: { x: 0, y: 0, rotation: 0, scale: 1 }, // Reset since baked in
+        apRotation: 0, // Reset since baked in
+        latRotation: 0 // Reset since baked in
+      };
+      
+      if (apAdjustmentSaved && mlAdjustmentSaved) {
+        onNext(boneAnnotationData);
+      } else {
+        onSave(boneAnnotationData);
+      }
+    } catch (error) {
+      console.error('Failed to capture final images:', error);
+      // Fallback to original metadata approach
+      const boneAnnotationData = {
+        apPolygon,
+        latPolygon: mlPolygon,
+        apAdjustment,
+        latAdjustment: mlAdjustment
+      };
+      
+      if (apAdjustmentSaved && mlAdjustmentSaved) {
+        onNext(boneAnnotationData);
+      } else {
+        onSave(boneAnnotationData);
+      }
     }
   };
 

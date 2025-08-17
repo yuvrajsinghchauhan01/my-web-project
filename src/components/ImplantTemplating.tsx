@@ -180,53 +180,12 @@ const ImplantTemplating: React.FC<ImplantTemplatingProps> = ({ onBack, onSave, p
                   backgroundSize: 'contain',
                   backgroundRepeat: 'no-repeat',
                   backgroundPosition: 'center',
-                  transform: `rotate(${patientData.apRotation || 0}deg)`,
                   width: '100%',
                   height: '100%',
                   
                 }}
               >
-                {/* Render the bone annotation if available */}
-                {patientData.apPolygon && patientData.apAdjustment && (
-                  <>
-                    {/* Black mask for original area - completely hide the original bone */}
-                    <div 
-                      className="absolute inset-0 pointer-events-none"
-                      style={{
-                        clipPath: `polygon(${patientData.apPolygon.points?.map((p: any) => `${p.x}% ${p.y}%`).join(', ')})`,
-                        backgroundColor: 'black',
-                        zIndex: 5
-                      }}
-                    />
-                    
-                    {/* Alternative SVG mask approach */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 5 }}>
-                      <polygon 
-                        points={patientData.apPolygon.points?.map((p: any) => `${p.x},${p.y}`).join(' ')}
-                        fill="black" 
-                      />
-                    </svg>
-                    
-                    {/* Cropped and adjusted bone segment - shows above the mask */}
-                    <div 
-                      className="absolute inset-0 pointer-events-none"
-                      style={{
-                        clipPath: `polygon(${patientData.apPolygon.points?.map((p: any) => `${p.x}% ${p.y}%`).join(', ')})`,
-                        backgroundImage: `url("${patientData.apXrayImage}")`,
-                        backgroundSize: 'contain',
-                        backgroundRepeat: 'no-repeat',
-                        backgroundPosition: 'center',
-                        transform: `
-                          translate(${patientData.apAdjustment.x}px, ${patientData.apAdjustment.y}px)
-                          rotate(${patientData.apAdjustment.rotation}deg)
-                          scale(${patientData.apAdjustment.scale})
-                        `,
-                        transformOrigin: `${patientData.apPolygon.points?.reduce((acc: any, p: any) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 }).x / patientData.apPolygon.points?.length || 50}% ${patientData.apPolygon.points?.reduce((acc: any, p: any) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 }).y / patientData.apPolygon.points?.length || 50}%`,
-                        zIndex: 15
-                      }}
-                    />
-                  </>
-                )}
+                {/* Image now contains all transformations baked in - no additional processing needed */}
               </div>
             </div>
 
@@ -241,52 +200,11 @@ const ImplantTemplating: React.FC<ImplantTemplatingProps> = ({ onBack, onSave, p
                   backgroundSize: 'contain',
                   backgroundPosition: 'center',
                   backgroundRepeat: 'no-repeat',
-                  transform: `rotate(${patientData.latRotation || 0}deg)`,
                   width: '100%',
                   height: '100%',
                 }}
               >
-                {/* Render the bone annotation if available */}
-                {patientData.latPolygon && patientData.latAdjustment && (
-                  <>
-                    {/* Black mask for original area - completely hide the original bone */}
-                    <div 
-                      className="absolute inset-0 pointer-events-none"
-                      style={{
-                        clipPath: `polygon(${patientData.latPolygon.points?.map((p: any) => `${p.x}% ${p.y}%`).join(', ')})`,
-                        backgroundColor: 'black',
-                        zIndex: 5
-                      }}
-                    />
-                    
-                    {/* Alternative SVG mask approach */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 5 }}>
-                      <polygon 
-                        points={patientData.latPolygon.points?.map((p: any) => `${p.x},${p.y}`).join(' ')}
-                        fill="black" 
-                      />
-                    </svg>
-                    
-                    {/* Cropped and adjusted bone segment - shows above the mask */}
-                    <div 
-                      className="absolute inset-0 pointer-events-none"
-                      style={{
-                        clipPath: `polygon(${patientData.latPolygon.points?.map((p: any) => `${p.x}% ${p.y}%`).join(', ')})`,
-                        backgroundImage: `url("${patientData.latXrayImage}")`,
-                        backgroundSize: 'contain',
-                        backgroundRepeat: 'no-repeat',
-                        backgroundPosition: 'center',
-                        transform: `
-                          translate(${patientData.latAdjustment.x}px, ${patientData.latAdjustment.y}px)
-                          rotate(${patientData.latAdjustment.rotation}deg)
-                          scale(${patientData.latAdjustment.scale})
-                        `,
-                        transformOrigin: `${patientData.latPolygon.points?.reduce((acc: any, p: any) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 }).x / patientData.latPolygon.points?.length || 50}% ${patientData.latPolygon.points?.reduce((acc: any, p: any) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 }).y / patientData.latPolygon.points?.length || 50}%`,
-                        zIndex: 15
-                      }}
-                    />
-                  </>
-                )}
+                {/* Image now contains all transformations baked in - no additional processing needed */}
               </div>
             </div>
           </div>
